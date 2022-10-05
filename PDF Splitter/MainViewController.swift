@@ -17,10 +17,6 @@ final class MainViewController: UISplitViewController {
 final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewController.OuterPDFThumbnailView> {
     required init?(coder aDecoder: NSCoder) {
         super.init(rootView: PDFThumbnailsViewController.OuterPDFThumbnailView())
-                
-        if let documentFolder = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first {
-            print("Documents folder: ", documentFolder)
-        }
     }
     
     override func viewDidLoad() {
@@ -193,7 +189,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                     FilePickerView(selectableContentTypes: [UTType.pdf]) { url in
                         guard url != nil else { return }
                         
-                        let userActivity = NSUserActivity(activityType: "pdf")
+                        let userActivity = NSUserActivity(activityType: .openPDFUserActivityType)
                         userActivity.userInfo = ["url" : url as Any]
                         UIApplication.shared.requestSceneSessionActivation(nil, userActivity: userActivity, options: nil)
                         //self.pdfUrlPublisher.value = url
@@ -208,49 +204,6 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
             }
             
             self.pdfUrlPublisher.value = pdfPath
-        }
-    }
-}
-
-final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpenedPDFsViewController.RecentlyOpenedPDFsView> {
-    required init?(coder aDecoder: NSCoder) {
-        super.init(rootView: RecentlyOpenedPDFsView())
-    }
-    
-    struct RecentlyOpenedPDFsView: View {
-        @State private var showingFilePicker = false
-
-        var body: some View {
-            NavigationView {
-                Text(verbatim: "Main View")
-                    .navigationTitle("PDF Splitter")
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button {
-                                //loadTestPDF()
-                                showingFilePicker = true
-                            } label: {
-                                Image(systemName: "folder")
-                            }
-                        }
-                    }
-                    .sheet(isPresented: $showingFilePicker) {
-                        FilePickerView(selectableContentTypes: [UTType.pdf]) { url in
-                            guard let url else { return }
-                            
-                            let userActivity = NSUserActivity(activityType: "pdf")
-                            userActivity.userInfo = ["url" : url.absoluteString]
-                            UIApplication.shared.requestSceneSessionActivation(nil, userActivity: userActivity, options: nil)
-                        }
-                    }
-            }
-        }
-        
-        private func loadTestPDF() {
-            guard let pdfPath = Bundle.main.url(forResource: "Test", withExtension: "pdf") else {
-                assertionFailure("Test.pdf not found.")
-                return
-            }
         }
     }
 }

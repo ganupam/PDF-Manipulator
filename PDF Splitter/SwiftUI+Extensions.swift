@@ -8,3 +8,12 @@
 import Foundation
 import SwiftUI
 
+extension String {
+    static var openPDFUserActivityType: String {
+        (Bundle.main.bundleIdentifier ?? "") + ".openpdf"
+    }
+    
+    static var openedPDFConfigurationName: String {
+       "Opened PDF Configuration"
+    }
+}

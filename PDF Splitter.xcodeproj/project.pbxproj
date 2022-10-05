@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		41FBA7C928ED4F84009470FD /* RecentlyOpenedPDFsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41FBA7C828ED4F84009470FD /* RecentlyOpenedPDFsViewController.swift */; };
 		6E5B04BC28D0996D00D5F25A /* FilePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B04BB28D0996D00D5F25A /* FilePickerView.swift */; };
 		6E5B04BE28D099BC00D5F25A /* SwiftUI+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B04BD28D099BC00D5F25A /* SwiftUI+Extensions.swift */; };
 		6E613AC128D0ABDB00676530 /* PDFPageThumbnailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E613AC028D0ABDB00676530 /* PDFPageThumbnailView.swift */; };
@@ -22,6 +23,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		41FBA7C828ED4F84009470FD /* RecentlyOpenedPDFsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentlyOpenedPDFsViewController.swift; sourceTree = "<group>"; };
 		6E5B04BB28D0996D00D5F25A /* FilePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePickerView.swift; sourceTree = "<group>"; };
 		6E5B04BD28D099BC00D5F25A /* SwiftUI+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SwiftUI+Extensions.swift"; sourceTree = "<group>"; };
 		6E613AC028D0ABDB00676530 /* PDFPageThumbnailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPageThumbnailView.swift; sourceTree = "<group>"; };
@@ -71,6 +73,7 @@
 				6EB7977C28B8B5C9002120E1 /* AppDelegate.swift */,
 				6EB7977E28B8B5C9002120E1 /* SceneDelegate.swift */,
 				6EB7978028B8B5C9002120E1 /* MainViewController.swift */,
+				41FBA7C828ED4F84009470FD /* RecentlyOpenedPDFsViewController.swift */,
 				6E5B04BB28D0996D00D5F25A /* FilePickerView.swift */,
 				6EB7978228B8B5C9002120E1 /* OpenedPDF.storyboard */,
 				6E84D98428ED03D50034C170 /* RecentlyOpenedPDFs.storyboard */,
@@ -164,6 +167,7 @@
 				6EB7977D28B8B5C9002120E1 /* AppDelegate.swift in Sources */,
 				6E84D98328EB8D300034C170 /* PDFPagesModel.swift in Sources */,
 				6E613AC128D0ABDB00676530 /* PDFPageThumbnailView.swift in Sources */,
+				41FBA7C928ED4F84009470FD /* RecentlyOpenedPDFsViewController.swift in Sources */,
 				6EB7977F28B8B5C9002120E1 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

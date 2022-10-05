@@ -19,8 +19,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
         // Called when a new scene session is being created.
         // Use this method to select a configuration to create the new scene with.
-        if let userActivity = options.userActivities.first, userActivity.activityType == "pdf" {
-            return UISceneConfiguration(name: "Opened PDF Configuration", sessionRole: connectingSceneSession.role)
+        if let userActivity = options.userActivities.first, userActivity.activityType == .openPDFUserActivityType {
+            connectingSceneSession.userInfo = userActivity.userInfo as? [String : Any]
+            return UISceneConfiguration(name: .openedPDFConfigurationName, sessionRole: connectingSceneSession.role)
         } else {
             return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
         }
