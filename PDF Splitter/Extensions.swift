@@ -17,3 +17,14 @@ extension String {
        "Opened PDF Configuration"
     }
 }
+
+private struct URLEnvironmentKey: EnvironmentKey {
+    static let defaultValue: URL = URL(string: "www.apple.com")!
+}
+
+extension EnvironmentValues {
+    var pdfUrl: URL {
+        get { self[URLEnvironmentKey.self] }
+        set { self[URLEnvironmentKey.self] = newValue }
+    }
+}

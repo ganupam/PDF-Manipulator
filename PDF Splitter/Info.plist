@@ -14,17 +14,13 @@
 					<key>UISceneConfigurationName</key>
 					<string>Default Configuration</string>
 					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
-					<key>UISceneStoryboardFile</key>
-					<string>RecentlyOpenedPDFs</string>
+					<string>$(PRODUCT_MODULE_NAME).RecentlyOpenedPDFsSceneDelegate</string>
 				</dict>
 				<dict>
 					<key>UISceneConfigurationName</key>
 					<string>Opened PDF Configuration</string>
 					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
-					<key>UISceneStoryboardFile</key>
-					<string>OpenedPDF</string>
+					<string>$(PRODUCT_MODULE_NAME).OpenedPDFSceneDelegate</string>
 				</dict>
 			</array>
 		</dict>

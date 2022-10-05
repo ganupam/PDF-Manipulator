@@ -10,7 +10,7 @@ import CoreGraphics
 import UIKit
 
 final class PDFPagesModel: ObservableObject {
-    private let queue = DispatchQueue(label: "com.pdfgenerator", qos: .userInitiated, attributes: .concurrent)
+    private let queue = DispatchQueue(label: Bundle.main.bundleIdentifier! + ".pdfgenerator", qos: .userInitiated, attributes: .concurrent)
     
     private enum ImageGenerationState {
         case notStarted, inProgress, ready
