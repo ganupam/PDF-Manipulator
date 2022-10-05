@@ -9,13 +9,15 @@ import UIKit
 
 final class SplitViewController: UISplitViewController {
     let pdfUrl: URL
+    let scene: UIWindowScene
     
-    init(pdfUrl: URL) {
+    init(pdfUrl: URL, scene: UIWindowScene) {
         self.pdfUrl = pdfUrl
-
+        self.scene = scene
+        
         super.init(style: .doubleColumn)
         
-        self.setViewController(PDFThumbnailsViewController(pdfUrl: pdfUrl), for: .primary)
+        self.setViewController(PDFThumbnailsViewController(pdfUrl: pdfUrl, scene: scene), for: .primary)
         self.setViewController(PDFPagesViewController(pdfUrl: pdfUrl), for: .secondary)
     }
     

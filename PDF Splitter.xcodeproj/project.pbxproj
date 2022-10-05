@@ -14,6 +14,7 @@
 		6E84D98828EDF8F40034C170 /* OpenedPDFSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E84D98728EDF8F40034C170 /* OpenedPDFSceneDelegate.swift */; };
 		6E84D98A28EE06B00034C170 /* PDFThumbnailsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E84D98928EE06B00034C170 /* PDFThumbnailsViewController.swift */; };
 		6E84D98C28EE06D90034C170 /* PDFPagesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E84D98B28EE06D90034C170 /* PDFPagesViewController.swift */; };
+		6E84D99128EE342F0034C170 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6E84D99328EE342F0034C170 /* Localizable.strings */; };
 		6EB7977D28B8B5C9002120E1 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB7977C28B8B5C9002120E1 /* AppDelegate.swift */; };
 		6EB7977F28B8B5C9002120E1 /* RecentlyOpenedPDFsSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB7977E28B8B5C9002120E1 /* RecentlyOpenedPDFsSceneDelegate.swift */; };
 		6EB7978128B8B5C9002120E1 /* SplitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB7978028B8B5C9002120E1 /* SplitViewController.swift */; };
@@ -29,6 +30,7 @@
 		6E84D98728EDF8F40034C170 /* OpenedPDFSceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenedPDFSceneDelegate.swift; sourceTree = "<group>"; };
 		6E84D98928EE06B00034C170 /* PDFThumbnailsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFThumbnailsViewController.swift; sourceTree = "<group>"; };
 		6E84D98B28EE06D90034C170 /* PDFPagesViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPagesViewController.swift; sourceTree = "<group>"; };
+		6E84D99228EE342F0034C170 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		6EB7977928B8B5C9002120E1 /* PDF Splitter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "PDF Splitter.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6EB7977C28B8B5C9002120E1 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6EB7977E28B8B5C9002120E1 /* RecentlyOpenedPDFsSceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentlyOpenedPDFsSceneDelegate.swift; sourceTree = "<group>"; };
@@ -97,6 +99,7 @@
 				6E5B04BD28D099BC00D5F25A /* Extensions.swift */,
 				6E84D98228EB8D300034C170 /* PDFPagesModel.swift */,
 				6E5B04BB28D0996D00D5F25A /* FilePickerView.swift */,
+				6E84D99328EE342F0034C170 /* Localizable.strings */,
 			);
 			path = "PDF Splitter";
 			sourceTree = "<group>";
@@ -160,6 +163,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6EB7978928B8B5CC002120E1 /* LaunchScreen.storyboard in Resources */,
+				6E84D99128EE342F0034C170 /* Localizable.strings in Resources */,
 				6EB7978628B8B5CC002120E1 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -187,6 +191,14 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
+		6E84D99328EE342F0034C170 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				6E84D99228EE342F0034C170 /* en */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
 		6EB7978728B8B5CC002120E1 /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -317,9 +329,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 356QY8883U;
+				DEVELOPMENT_TEAM = N6J3SCU25X;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "PDF Splitter/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -332,8 +345,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.soundhound.PDF-Splitter";
+				PRODUCT_BUNDLE_IDENTIFIER = com.realnotion.pdfmanipulator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -345,9 +359,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 356QY8883U;
+				DEVELOPMENT_TEAM = N6J3SCU25X;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "PDF Splitter/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -360,8 +375,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.soundhound.PDF-Splitter";
+				PRODUCT_BUNDLE_IDENTIFIER = com.realnotion.pdfmanipulator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

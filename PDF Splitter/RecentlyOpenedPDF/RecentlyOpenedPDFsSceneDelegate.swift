@@ -17,7 +17,7 @@ final class RecentlyOpenedPDFsSceneDelegate: UIResponder, UIWindowSceneDelegate 
         guard let windowScene = (scene as? UIWindowScene) else { return }
           
         let window = UIWindow(windowScene: windowScene)
-        let vc = RecentlyOpenedPDFsViewController()
+        let vc = RecentlyOpenedPDFsViewController(scene: windowScene)
         window.rootViewController = UINavigationController(rootViewController: vc)
         window.makeKeyAndVisible()
         self.window = window

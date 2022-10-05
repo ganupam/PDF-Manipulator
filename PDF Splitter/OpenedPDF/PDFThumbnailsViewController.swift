@@ -10,11 +10,13 @@ import SwiftUI
 
 final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewController.OuterPDFThumbnailView> {
     let pdfUrl: URL
+    let scene: UIWindowScene
     
-    init(pdfUrl: URL) {
+    init(pdfUrl: URL, scene: UIWindowScene) {
         self.pdfUrl = pdfUrl
-
-        super.init(rootView: OuterPDFThumbnailView(pdfUrl: pdfUrl))
+        self.scene = scene
+        
+        super.init(rootView: OuterPDFThumbnailView(pdfUrl: pdfUrl, scene: scene))
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -25,10 +27,12 @@ final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewCo
 extension PDFThumbnailsViewController {
     struct OuterPDFThumbnailView: View {
         let pdfUrl: URL
+        let scene: UIWindowScene
         
         var body: some View {
             PDFThumbnails(pdfUrl: pdfUrl)
                 .environment(\.pdfUrl, pdfUrl)
+                .environment(\.windowScene, scene)
         }
     }
     
@@ -36,9 +40,10 @@ extension PDFThumbnailsViewController {
         @State private var pdfDocument: CGPDFDocument
         @State private var isSelected: [Bool]
         @StateObject private var pagesModel: PDFPagesModel
+        @Environment(\.windowScene) private var scene: UIWindowScene?
         
         private static let horizontalSpacing = 20.0
-        private static let verticalSpacing = 20.0
+        private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
         
         init(pdfUrl: URL) {
@@ -54,16 +59,28 @@ extension PDFThumbnailsViewController {
                 if reader.size.width == 0 {
                     EmptyView()
                 } else {
-                    ScrollView {
-                        LazyVGrid(columns: [GridItem(.flexible(), spacing: Self.horizontalSpacing), GridItem(.flexible())], spacing: Self.verticalSpacing) {
-                            ForEach(1 ..< (pdfDocument.numberOfPages + 1), id: \.self) { pageNumber in
-                                createList(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing) / 2, pageNumber: pageNumber, isSelected: $isSelected[pageNumber - 1])
+                    ZStack(alignment: .top) {
+                        ScrollViewWithDidScroll { offset in
+                            print(offset)
+                        } content: {
+                            LazyVGrid(columns: [GridItem(.flexible(), spacing: Self.horizontalSpacing), GridItem(.flexible())], spacing: Self.verticalSpacing) {
+                                ForEach(1 ..< (pdfDocument.numberOfPages + 1), id: \.self) { pageNumber in
+                                    createList(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing) / 2, pageNumber: pageNumber, isSelected: $isSelected[pageNumber - 1])
+                                }
                             }
+                            .padding([.horizontal, .bottom], Self.gridPadding)
+                            .padding(.top, Self.gridPadding + 8)
                         }
-                        .padding(Self.gridPadding)
+                        
+                        Color.clear.background(.ultraThinMaterial)
+                            .frame(height: scene?.statusBarManager?.statusBarFrame.height ?? 0)
+                            .frame(maxWidth: .infinity)
+                            .ignoresSafeArea(.all, edges: .top)
                     }
                 }
             }
+            .ignoresSafeArea(.all, edges: .top)
+            .navigationBarHidden(true)
         }
         
         private func createList(width: Double, pageNumber: Int, isSelected: Binding<Bool>) -> some View {

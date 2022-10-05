@@ -31,7 +31,7 @@ final class PDFPagesModel: ObservableObject {
         DispatchQueue.main.async {
             guard self.currentWidth != width else { return}
             
-            print("Changed width from \(self.currentWidth) to \(width)")
+            //print("Changed width from \(self.currentWidth) to \(width)")
             
             self.currentWidth = width
             
@@ -64,7 +64,7 @@ final class PDFPagesModel: ObservableObject {
             return nil
         }
         
-        print("\(Unmanaged.passUnretained(self).toOpaque()), Page number:", pageNumber, ", width:", self.currentWidth)
+        //print("\(Unmanaged.passUnretained(self).toOpaque()), Page number:", pageNumber, ", width:", self.currentWidth)
         var pageRect = page.getBoxRect(.mediaBox)
         pageRect = pageRect.applying(CGAffineTransform(rotationAngle: Double(page.rotationAngle) * Double.pi / 180))
         pageRect.origin = .zero

@@ -17,7 +17,11 @@ final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
           
         let window = UIWindow(windowScene: windowScene)
-        window.rootViewController = SplitViewController(pdfUrl: URL(string: session.userInfo?["url"] as! String)!)
+        var bookmarkDataIsStale = true
+        guard let bookmarkData = session.userInfo?[.urlBookmarkDataKey] as? Data, let url = try? URL(resolvingBookmarkData: bookmarkData, bookmarkDataIsStale: &bookmarkDataIsStale) else {
+            return
+        }
+        window.rootViewController = SplitViewController(pdfUrl: url, scene: windowScene)
         window.makeKeyAndVisible()
         self.window = window
     }
@@ -27,6 +31,10 @@ final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
         // This occurs shortly after the scene enters the background, or when its session is discarded.
         // Release any resources associated with this scene that can be re-created the next time the scene connects.
         // The scene may re-connect later, as its session was not necessarily discarded (see `application:didDiscardSceneSessions` instead).
+        var bookmarkDataIsStale = true
+        if let bookmarkData = scene.session.userInfo?[.urlBookmarkDataKey] as? Data, let url = try? URL(resolvingBookmarkData: bookmarkData, bookmarkDataIsStale: &bookmarkDataIsStale) {
+            url.stopAccessingSecurityScopedResource()
+        }
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {

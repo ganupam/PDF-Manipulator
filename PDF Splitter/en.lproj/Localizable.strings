@@ -1,0 +1,10 @@
+/* 
+  Localizable.strings
+  PDF Splitter
+
+  Created by Anupam Godbole on 10/5/22.
+  
+*/
+
+"unableToOpen" = "Unable to open selected file";
+"generalOK" = "OK";
