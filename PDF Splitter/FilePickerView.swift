@@ -10,6 +10,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct FilePickerView: UIViewControllerRepresentable {
+    let selectableContentTypes: [UTType]
     let documentPicked: (URL?) -> Void
     
     final class FilePickerViewDelegate: NSObject, UIDocumentPickerDelegate {
@@ -29,7 +30,7 @@ struct FilePickerView: UIViewControllerRepresentable {
     }
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.pdf])
+        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: self.selectableContentTypes)
         documentPicker.shouldShowFileExtensions = true
         documentPicker.delegate = context.coordinator
         return documentPicker

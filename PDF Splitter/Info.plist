@@ -16,7 +16,15 @@
 					<key>UISceneDelegateClassName</key>
 					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
 					<key>UISceneStoryboardFile</key>
-					<string>Main</string>
+					<string>RecentlyOpenedPDFs</string>
+				</dict>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Opened PDF Configuration</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>OpenedPDF</string>
 				</dict>
 			</array>
 		</dict>

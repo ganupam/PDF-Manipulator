@@ -11,11 +11,12 @@
 		6E5B04BE28D099BC00D5F25A /* SwiftUI+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5B04BD28D099BC00D5F25A /* SwiftUI+Extensions.swift */; };
 		6E613AC128D0ABDB00676530 /* PDFPageThumbnailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E613AC028D0ABDB00676530 /* PDFPageThumbnailView.swift */; };
 		6E84D98328EB8D300034C170 /* PDFPagesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E84D98228EB8D300034C170 /* PDFPagesModel.swift */; };
+		6E84D98628ED03D50034C170 /* RecentlyOpenedPDFs.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6E84D98428ED03D50034C170 /* RecentlyOpenedPDFs.storyboard */; };
 		6EB2024128C85F4C00FB9A9C /* Test.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 6EB2024028C85F4C00FB9A9C /* Test.pdf */; };
 		6EB7977D28B8B5C9002120E1 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB7977C28B8B5C9002120E1 /* AppDelegate.swift */; };
 		6EB7977F28B8B5C9002120E1 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB7977E28B8B5C9002120E1 /* SceneDelegate.swift */; };
 		6EB7978128B8B5C9002120E1 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB7978028B8B5C9002120E1 /* MainViewController.swift */; };
-		6EB7978428B8B5C9002120E1 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6EB7978228B8B5C9002120E1 /* Main.storyboard */; };
+		6EB7978428B8B5C9002120E1 /* OpenedPDF.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6EB7978228B8B5C9002120E1 /* OpenedPDF.storyboard */; };
 		6EB7978628B8B5CC002120E1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6EB7978528B8B5CC002120E1 /* Assets.xcassets */; };
 		6EB7978928B8B5CC002120E1 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6EB7978728B8B5CC002120E1 /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
@@ -25,12 +26,13 @@
 		6E5B04BD28D099BC00D5F25A /* SwiftUI+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SwiftUI+Extensions.swift"; sourceTree = "<group>"; };
 		6E613AC028D0ABDB00676530 /* PDFPageThumbnailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPageThumbnailView.swift; sourceTree = "<group>"; };
 		6E84D98228EB8D300034C170 /* PDFPagesModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPagesModel.swift; sourceTree = "<group>"; };
+		6E84D98528ED03D50034C170 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/RecentlyOpenedPDFs.storyboard; sourceTree = "<group>"; };
 		6EB2024028C85F4C00FB9A9C /* Test.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Test.pdf; sourceTree = "<group>"; };
 		6EB7977928B8B5C9002120E1 /* PDF Splitter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "PDF Splitter.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6EB7977C28B8B5C9002120E1 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6EB7977E28B8B5C9002120E1 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		6EB7978028B8B5C9002120E1 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
-		6EB7978328B8B5C9002120E1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		6EB7978328B8B5C9002120E1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/OpenedPDF.storyboard; sourceTree = "<group>"; };
 		6EB7978528B8B5CC002120E1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6EB7978828B8B5CC002120E1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6EB7978A28B8B5CC002120E1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -70,7 +72,8 @@
 				6EB7977E28B8B5C9002120E1 /* SceneDelegate.swift */,
 				6EB7978028B8B5C9002120E1 /* MainViewController.swift */,
 				6E5B04BB28D0996D00D5F25A /* FilePickerView.swift */,
-				6EB7978228B8B5C9002120E1 /* Main.storyboard */,
+				6EB7978228B8B5C9002120E1 /* OpenedPDF.storyboard */,
+				6E84D98428ED03D50034C170 /* RecentlyOpenedPDFs.storyboard */,
 				6EB7978528B8B5CC002120E1 /* Assets.xcassets */,
 				6EB7978728B8B5CC002120E1 /* LaunchScreen.storyboard */,
 				6EB7978A28B8B5CC002120E1 /* Info.plist */,
@@ -143,7 +146,8 @@
 				6EB7978928B8B5CC002120E1 /* LaunchScreen.storyboard in Resources */,
 				6EB7978628B8B5CC002120E1 /* Assets.xcassets in Resources */,
 				6EB2024128C85F4C00FB9A9C /* Test.pdf in Resources */,
-				6EB7978428B8B5C9002120E1 /* Main.storyboard in Resources */,
+				6E84D98628ED03D50034C170 /* RecentlyOpenedPDFs.storyboard in Resources */,
+				6EB7978428B8B5C9002120E1 /* OpenedPDF.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -167,12 +171,20 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
-		6EB7978228B8B5C9002120E1 /* Main.storyboard */ = {
+		6E84D98428ED03D50034C170 /* RecentlyOpenedPDFs.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				6E84D98528ED03D50034C170 /* Base */,
+			);
+			name = RecentlyOpenedPDFs.storyboard;
+			sourceTree = "<group>";
+		};
+		6EB7978228B8B5C9002120E1 /* OpenedPDF.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
 				6EB7978328B8B5C9002120E1 /* Base */,
 			);
-			name = Main.storyboard;
+			name = OpenedPDF.storyboard;
 			sourceTree = "<group>";
 		};
 		6EB7978728B8B5CC002120E1 /* LaunchScreen.storyboard */ = {
@@ -313,7 +325,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UIMainStoryboardFile = RecentlyOpenedPDFs;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -342,7 +354,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UIMainStoryboardFile = RecentlyOpenedPDFs;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
