@@ -1,6 +1,6 @@
 //
 //  PDFPagesModel.swift
-//  PDF Splitter
+//  PDF Manipulator
 //
 //  Created by Anupam Godbole on 10/3/22.
 //

@@ -1,6 +1,6 @@
 //
 //  AppDelegate.swift
-//  PDF Splitter
+//  PDF Manipulator
 //
 //  Created by Anupam Godbole on 8/26/22.
 //

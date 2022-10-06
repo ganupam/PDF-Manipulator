@@ -31,7 +31,7 @@
 		6E84D98928EE06B00034C170 /* PDFThumbnailsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFThumbnailsViewController.swift; sourceTree = "<group>"; };
 		6E84D98B28EE06D90034C170 /* PDFPagesViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPagesViewController.swift; sourceTree = "<group>"; };
 		6E84D99228EE342F0034C170 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
-		6EB7977928B8B5C9002120E1 /* PDF Splitter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "PDF Splitter.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6EB7977928B8B5C9002120E1 /* PDF Manipulator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "PDF Manipulator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6EB7977C28B8B5C9002120E1 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6EB7977E28B8B5C9002120E1 /* RecentlyOpenedPDFsSceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentlyOpenedPDFsSceneDelegate.swift; sourceTree = "<group>"; };
 		6EB7978028B8B5C9002120E1 /* SplitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitViewController.swift; sourceTree = "<group>"; };
@@ -74,7 +74,7 @@
 		6EB7977028B8B5C9002120E1 = {
 			isa = PBXGroup;
 			children = (
-				6EB7977B28B8B5C9002120E1 /* PDF Splitter */,
+				6EB7977B28B8B5C9002120E1 /* PDF Manipulator */,
 				6EB7977A28B8B5C9002120E1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -82,12 +82,12 @@
 		6EB7977A28B8B5C9002120E1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				6EB7977928B8B5C9002120E1 /* PDF Splitter.app */,
+				6EB7977928B8B5C9002120E1 /* PDF Manipulator.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		6EB7977B28B8B5C9002120E1 /* PDF Splitter */ = {
+		6EB7977B28B8B5C9002120E1 /* PDF Manipulator */ = {
 			isa = PBXGroup;
 			children = (
 				6EB7977C28B8B5C9002120E1 /* AppDelegate.swift */,
@@ -101,15 +101,15 @@
 				6E5B04BB28D0996D00D5F25A /* FilePickerView.swift */,
 				6E84D99328EE342F0034C170 /* Localizable.strings */,
 			);
-			path = "PDF Splitter";
+			path = "PDF Manipulator";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		6EB7977828B8B5C9002120E1 /* PDF Splitter */ = {
+		6EB7977828B8B5C9002120E1 /* PDF Manipulator */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 6EB7978D28B8B5CC002120E1 /* Build configuration list for PBXNativeTarget "PDF Splitter" */;
+			buildConfigurationList = 6EB7978D28B8B5CC002120E1 /* Build configuration list for PBXNativeTarget "PDF Manipulator" */;
 			buildPhases = (
 				6EB7977528B8B5C9002120E1 /* Sources */,
 				6EB7977628B8B5C9002120E1 /* Frameworks */,
@@ -119,9 +119,9 @@
 			);
 			dependencies = (
 			);
-			name = "PDF Splitter";
+			name = "PDF Manipulator";
 			productName = "PDF Splitter";
-			productReference = 6EB7977928B8B5C9002120E1 /* PDF Splitter.app */;
+			productReference = 6EB7977928B8B5C9002120E1 /* PDF Manipulator.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -139,7 +139,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 6EB7977428B8B5C9002120E1 /* Build configuration list for PBXProject "PDF Splitter" */;
+			buildConfigurationList = 6EB7977428B8B5C9002120E1 /* Build configuration list for PBXProject "PDF Manipulator" */;
 			compatibilityVersion = "Xcode 13.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -152,7 +152,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				6EB7977828B8B5C9002120E1 /* PDF Splitter */,
+				6EB7977828B8B5C9002120E1 /* PDF Manipulator */,
 			);
 		};
 /* End PBXProject section */
@@ -334,7 +334,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = N6J3SCU25X;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "PDF Splitter/Info.plist";
+				INFOPLIST_FILE = "PDF Manipulator/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -364,7 +364,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = N6J3SCU25X;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "PDF Splitter/Info.plist";
+				INFOPLIST_FILE = "PDF Manipulator/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -387,7 +387,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		6EB7977428B8B5C9002120E1 /* Build configuration list for PBXProject "PDF Splitter" */ = {
+		6EB7977428B8B5C9002120E1 /* Build configuration list for PBXProject "PDF Manipulator" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				6EB7978B28B8B5CC002120E1 /* Debug */,
@@ -396,7 +396,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		6EB7978D28B8B5CC002120E1 /* Build configuration list for PBXNativeTarget "PDF Splitter" */ = {
+		6EB7978D28B8B5CC002120E1 /* Build configuration list for PBXNativeTarget "PDF Manipulator" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				6EB7978E28B8B5CC002120E1 /* Debug */,

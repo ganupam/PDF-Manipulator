@@ -1,6 +1,6 @@
 //
 //  RecentlyOpenedPDFsViewController.swift
-//  PDF Splitter
+//  PDF Manipulator
 //
 //  Created by Anupam Godbole on 10/4/22.
 //
@@ -38,7 +38,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
 
         var body: some View {
             Text(verbatim: "Main View")
-                .navigationTitle("PDF Splitter")
+                .navigationTitle("PDF Manipulator")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button {

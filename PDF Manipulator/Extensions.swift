@@ -1,6 +1,6 @@
 //
 //  SwiftUI+Extensions.swift
-//  PDF Splitter
+//  PDF Manipulator
 //
 //  Created by Anupam Godbole on 9/13/22.
 //

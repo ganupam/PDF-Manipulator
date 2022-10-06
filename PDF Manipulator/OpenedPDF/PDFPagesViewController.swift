@@ -1,6 +1,6 @@
 //
 //  PDFPagesViewController.swift
-//  PDF Splitter
+//  PDF Manipulator
 //
 //  Created by Anupam Godbole on 10/5/22.
 //

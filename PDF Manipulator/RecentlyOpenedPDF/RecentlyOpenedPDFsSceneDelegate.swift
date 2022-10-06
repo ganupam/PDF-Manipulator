@@ -1,13 +1,13 @@
 //
-//  OpenedPDFSceneDelegate.swift
-//  PDF Splitter
+//  RecentlyOpenedPDFsSceneDelegate.swift
+//  PDF Manipulator
 //
 //  Created by Anupam Godbole on 8/26/22.
 //
 
 import UIKit
 
-final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
+final class RecentlyOpenedPDFsSceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
@@ -17,11 +17,8 @@ final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
           
         let window = UIWindow(windowScene: windowScene)
-        var bookmarkDataIsStale = true
-        guard let bookmarkData = session.userInfo?[.urlBookmarkDataKey] as? Data, let url = try? URL(resolvingBookmarkData: bookmarkData, bookmarkDataIsStale: &bookmarkDataIsStale) else {
-            return
-        }
-        window.rootViewController = SplitViewController(pdfUrl: url, scene: windowScene)
+        let vc = RecentlyOpenedPDFsViewController(scene: windowScene)
+        window.rootViewController = UINavigationController(rootViewController: vc)
         window.makeKeyAndVisible()
         self.window = window
     }
@@ -31,10 +28,6 @@ final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
         // This occurs shortly after the scene enters the background, or when its session is discarded.
         // Release any resources associated with this scene that can be re-created the next time the scene connects.
         // The scene may re-connect later, as its session was not necessarily discarded (see `application:didDiscardSceneSessions` instead).
-        var bookmarkDataIsStale = true
-        if let bookmarkData = scene.session.userInfo?[.urlBookmarkDataKey] as? Data, let url = try? URL(resolvingBookmarkData: bookmarkData, bookmarkDataIsStale: &bookmarkDataIsStale) {
-            url.stopAccessingSecurityScopedResource()
-        }
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {
