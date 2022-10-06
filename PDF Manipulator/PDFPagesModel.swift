@@ -17,12 +17,15 @@ final class PDFPagesModel: ObservableObject {
     }
     
     let pdf: CGPDFDocument
+    let enableLogging: Bool
+    
     @Published private(set) var images: [UIImage?]
     private var imageGenerationState: [ImageGenerationState]
     private var currentWidth = 0.0
     
-    init(pdf: CGPDFDocument) {
+    init(pdf: CGPDFDocument, enableLogging: Bool = false) {
         self.pdf = pdf
+        self.enableLogging = enableLogging
         self.images = Array(repeating: nil, count: pdf.numberOfPages)
         self.imageGenerationState = Array(repeating: .notStarted, count: pdf.numberOfPages)
     }
@@ -31,7 +34,9 @@ final class PDFPagesModel: ObservableObject {
         DispatchQueue.main.async {
             guard self.currentWidth != width else { return}
             
-            //print("Changed width from \(self.currentWidth) to \(width)")
+            if self.enableLogging {
+                print("Changed width from \(self.currentWidth) to \(width)")
+            }
             
             self.currentWidth = width
             
@@ -64,7 +69,10 @@ final class PDFPagesModel: ObservableObject {
             return nil
         }
         
-        //print("\(Unmanaged.passUnretained(self).toOpaque()), Page number:", pageNumber, ", width:", self.currentWidth)
+        if enableLogging {
+            print("\(Unmanaged.passUnretained(self).toOpaque()), Page number:", pageNumber, ", width:", self.currentWidth)
+        }
+        
         var pageRect = page.getBoxRect(.mediaBox)
         pageRect = pageRect.applying(CGAffineTransform(rotationAngle: Double(page.rotationAngle) * Double.pi / 180))
         pageRect.origin = .zero

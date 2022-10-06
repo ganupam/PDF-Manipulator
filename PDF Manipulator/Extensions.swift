@@ -88,3 +88,27 @@ struct ScrollViewWithDidScroll<Content: View>: View {
         .onPreferenceChange(ScrollOffsetPreferenceKey.self, perform: offsetChanged)
     }
 }
+
+extension FloatingPoint {
+    @inline(__always) static func interpolate(initialX: Self, initialY: Self, finalX: Self, finalY: Self, currentX: Self) -> Self {
+        if finalX < initialX {
+            if currentX < finalX && currentX < initialX {
+                return finalY
+            } else if currentX > finalX && currentX > initialX {
+                return initialY
+            } else {
+                let tmp = (finalY - initialY) * (currentX - initialX) / (finalX - initialX)
+                return initialY + tmp
+            }
+        } else {
+            if currentX < finalX && currentX < initialX {
+                return initialY
+            } else if currentX > finalX && currentX > initialX {
+                return finalY
+            } else {
+                let tmp = (finalY - initialY) * (currentX - initialX) / (finalX - initialX)
+                return initialY + tmp
+            }
+        }
+    }
+}

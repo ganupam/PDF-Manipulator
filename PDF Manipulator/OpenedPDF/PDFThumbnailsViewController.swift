@@ -40,11 +40,12 @@ extension PDFThumbnailsViewController {
         @State private var pdfDocument: CGPDFDocument
         @State private var isSelected: [Bool]
         @StateObject private var pagesModel: PDFPagesModel
+        @State private var statusBarOverlayOpacity = 1.0
         @Environment(\.windowScene) private var scene: UIWindowScene?
         
-        private static let horizontalSpacing = 20.0
-        private static let verticalSpacing = 10.0
-        private static let gridPadding = 20.0
+        private static let horizontalSpacing = 10.0
+        private static let verticalSpacing = 15.0
+        private static let gridPadding = 15.0
         
         init(pdfUrl: URL) {
             let doc = CGPDFDocument(pdfUrl as CFURL)!
@@ -61,36 +62,41 @@ extension PDFThumbnailsViewController {
                 } else {
                     ZStack(alignment: .top) {
                         ScrollViewWithDidScroll { offset in
-                            print(offset)
+                            statusBarOverlayOpacity = Double.interpolate(initialX: 0, initialY: 0, finalX: -20, finalY: 1, currentX: offset.y)
                         } content: {
                             LazyVGrid(columns: [GridItem(.flexible(), spacing: Self.horizontalSpacing), GridItem(.flexible())], spacing: Self.verticalSpacing) {
                                 ForEach(1 ..< (pdfDocument.numberOfPages + 1), id: \.self) { pageNumber in
-                                    createList(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing) / 2, pageNumber: pageNumber, isSelected: $isSelected[pageNumber - 1])
+                                    createList(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2, pageNumber: pageNumber, isSelected: $isSelected[pageNumber - 1])
                                 }
                             }
+                            .ignoresSafeArea(.all, edges: .top)
                             .padding([.horizontal, .bottom], Self.gridPadding)
-                            .padding(.top, Self.gridPadding + 8)
+                            .padding(.top, Self.gridPadding - 12)
                         }
                         
-                        Color.clear.background(.ultraThinMaterial)
+                        Color.clear
+                            .background(.ultraThinMaterial)
+                            .opacity(statusBarOverlayOpacity)
                             .frame(height: scene?.statusBarManager?.statusBarFrame.height ?? 0)
                             .frame(maxWidth: .infinity)
                             .ignoresSafeArea(.all, edges: .top)
                     }
                 }
             }
-            .ignoresSafeArea(.all, edges: .top)
             .navigationBarHidden(true)
         }
         
         private func createList(width: Double, pageNumber: Int, isSelected: Binding<Bool>) -> some View {
             pagesModel.changeWidth(width)
             
-            return VStack(spacing: 4) {
+            return VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 
                 Thumbnail(pagesModel: pagesModel, pageNumber: pageNumber, isSelected: isSelected)
                     .border(isSelected.wrappedValue ? .blue : .black, width: isSelected.wrappedValue ? 2 : 0.5)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 5)
+                    .background(.gray)
                 
                 Spacer(minLength: 0)
                 
@@ -101,6 +107,7 @@ extension PDFThumbnailsViewController {
                     .padding(.vertical, 4)
                     .background(isSelected.wrappedValue ? Color.blue : Color.black)
                     .clipShape(Capsule())
+                    .padding(.top, 5)
             }
         }
         
