@@ -112,3 +112,37 @@ extension FloatingPoint {
         }
     }
 }
+
+extension CGPDFDocument {
+    var title: String? {
+        guard let infoDict = self.info else {
+            return nil
+        }
+        let titleKey = ("Title" as NSString).cString(using: String.Encoding.ascii.rawValue)!
+        var titleStringRef: CGPDFStringRef?
+        CGPDFDictionaryGetString(infoDict, titleKey, &titleStringRef)
+        if let stringRef = titleStringRef,
+           let cTitle = CGPDFStringGetBytePtr(stringRef) {
+            let length = CGPDFStringGetLength(stringRef)
+            let encoding = CFStringBuiltInEncodings.UTF8.rawValue
+            let allocator = kCFAllocatorDefault
+            let optionalTitle: UnsafePointer<UInt8>! = Optional<UnsafePointer<UInt8>>(cTitle)
+            if let title = CFStringCreateWithBytes(allocator, optionalTitle, length, encoding, true) {
+                return title as String
+            }
+        }
+        return nil
+    }
+    
+    private static var urlAssociationKey: String = "urlAssociationKey"
+    
+    var url: URL? {
+        get {
+            objc_getAssociatedObject(self, &Self.urlAssociationKey) as? URL
+        }
+        
+        set {
+            objc_setAssociatedObject(self, &Self.urlAssociationKey, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+}

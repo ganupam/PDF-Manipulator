@@ -9,14 +9,14 @@ import Foundation
 import SwiftUI
 
 final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewController.OuterPDFThumbnailView> {
-    let pdfUrl: URL
+    let pdfDoc: CGPDFDocument
     let scene: UIWindowScene
     
-    init(pdfUrl: URL, scene: UIWindowScene) {
-        self.pdfUrl = pdfUrl
+    init(pdfDoc: CGPDFDocument, scene: UIWindowScene) {
+        self.pdfDoc = pdfDoc
         self.scene = scene
         
-        super.init(rootView: OuterPDFThumbnailView(pdfUrl: pdfUrl, scene: scene))
+        super.init(rootView: OuterPDFThumbnailView(pdfDoc: pdfDoc, scene: scene))
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -26,32 +26,29 @@ final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewCo
 
 extension PDFThumbnailsViewController {
     struct OuterPDFThumbnailView: View {
-        let pdfUrl: URL
+        let pdfDoc: CGPDFDocument
         let scene: UIWindowScene
         
         var body: some View {
-            PDFThumbnails(pdfUrl: pdfUrl)
-                .environment(\.pdfUrl, pdfUrl)
+            PDFThumbnails(pdfDoc: pdfDoc)
                 .environment(\.windowScene, scene)
         }
     }
     
     struct PDFThumbnails: View {
-        @State private var pdfDocument: CGPDFDocument
+        let pdfDoc: CGPDFDocument
         @State private var isSelected: [Bool]
         @StateObject private var pagesModel: PDFPagesModel
-        @State private var statusBarOverlayOpacity = 1.0
         @Environment(\.windowScene) private var scene: UIWindowScene?
         
         private static let horizontalSpacing = 10.0
         private static let verticalSpacing = 15.0
         private static let gridPadding = 15.0
         
-        init(pdfUrl: URL) {
-            let doc = CGPDFDocument(pdfUrl as CFURL)!
-            _pdfDocument = State(initialValue: doc)
-            _isSelected = State(initialValue: Array(repeating: false, count: doc.numberOfPages))
-            let pdfPagesModel = PDFPagesModel(pdf: doc)
+        init(pdfDoc: CGPDFDocument) {
+            self.pdfDoc = pdfDoc
+            _isSelected = State(initialValue: Array(repeating: false, count: pdfDoc.numberOfPages))
+            let pdfPagesModel = PDFPagesModel(pdf: pdfDoc)
             _pagesModel = StateObject(wrappedValue: pdfPagesModel)
         }
         
@@ -60,30 +57,27 @@ extension PDFThumbnailsViewController {
                 if reader.size.width == 0 {
                     EmptyView()
                 } else {
-                    ZStack(alignment: .top) {
-                        ScrollViewWithDidScroll { offset in
-                            statusBarOverlayOpacity = Double.interpolate(initialX: 0, initialY: 0, finalX: -20, finalY: 1, currentX: offset.y)
-                        } content: {
-                            LazyVGrid(columns: [GridItem(.flexible(), spacing: Self.horizontalSpacing), GridItem(.flexible())], spacing: Self.verticalSpacing) {
-                                ForEach(1 ..< (pdfDocument.numberOfPages + 1), id: \.self) { pageNumber in
-                                    createList(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2, pageNumber: pageNumber, isSelected: $isSelected[pageNumber - 1])
-                                }
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.flexible(), spacing: Self.horizontalSpacing), GridItem(.flexible())], spacing: Self.verticalSpacing) {
+                            ForEach(1 ..< (pdfDoc.numberOfPages + 1), id: \.self) { pageNumber in
+                                createList(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2, pageNumber: pageNumber, isSelected: $isSelected[pageNumber - 1])
                             }
-                            .ignoresSafeArea(.all, edges: .top)
-                            .padding([.horizontal, .bottom], Self.gridPadding)
-                            .padding(.top, Self.gridPadding - 12)
                         }
-                        
-                        Color.clear
-                            .background(.ultraThinMaterial)
-                            .opacity(statusBarOverlayOpacity)
-                            .frame(height: scene?.statusBarManager?.statusBarFrame.height ?? 0)
-                            .frame(maxWidth: .infinity)
-                            .ignoresSafeArea(.all, edges: .top)
+                        .ignoresSafeArea(.all, edges: .top)
+                        .padding(Self.gridPadding)
                     }
                 }
             }
-            .navigationBarHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        
+                    } label: {
+                        Image(systemName: "doc.badge.plus")
+                    }
+                }
+            }
+            //.navigationBarItems(leading: L)
         }
         
         private func createList(width: Double, pageNumber: Int, isSelected: Binding<Bool>) -> some View {
@@ -96,7 +90,7 @@ extension PDFThumbnailsViewController {
                     .border(isSelected.wrappedValue ? .blue : .black, width: isSelected.wrappedValue ? 2 : 0.5)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 5)
-                    .background(.gray)
+                    .background(.gray.opacity(0))
                 
                 Spacer(minLength: 0)
                 

@@ -9,12 +9,18 @@ import Foundation
 import SwiftUI
 
 final class PDFPagesViewController: UIHostingController<PDFPagesViewController.OuterPDFMainView> {
-    let pdfUrl: URL
-    
-    init(pdfUrl: URL) {
-        self.pdfUrl = pdfUrl
+    let pdfDoc: CGPDFDocument
+
+    init(pdfDoc: CGPDFDocument) {
+        self.pdfDoc = pdfDoc
         
-        super.init(rootView: OuterPDFMainView(pdfUrl: pdfUrl))
+        super.init(rootView: OuterPDFMainView(pdfDoc: pdfDoc))
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        //self.navigationController?.navigationBar.isTranslucent = false
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -22,28 +28,25 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
     }
 
     struct OuterPDFMainView: View {
-        let pdfUrl: URL
-
+        let pdfDoc: CGPDFDocument
+   
         var body: some View {
-            PDFMainView(pdfUrl: pdfUrl)
-                .environment(\.pdfUrl, pdfUrl)
+            PDFMainView(pdfDoc: pdfDoc)
         }
     }
     
     private struct PDFMainView: View {
-        let pdfUrl: URL
-        @State private var pdfDocument: CGPDFDocument
+        let pdfDoc: CGPDFDocument
+
         @StateObject private var pagesModel: PDFPagesModel
         @Environment(\.windowScene) private var scene: UIWindowScene?
 
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
 
-        init(pdfUrl: URL) {
-            self.pdfUrl = pdfUrl
-            let doc = CGPDFDocument(pdfUrl as CFURL)!
-            _pdfDocument = State(initialValue: doc)
-            let pdfPagesModel = PDFPagesModel(pdf: doc, enableLogging: true)
+        init(pdfDoc: CGPDFDocument) {
+            self.pdfDoc = pdfDoc
+            let pdfPagesModel = PDFPagesModel(pdf: pdfDoc, enableLogging: true)
             _pagesModel = StateObject(wrappedValue: pdfPagesModel)
         }
 
@@ -56,32 +59,24 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                         
                     } content: {
                         LazyVStack(spacing: Self.verticalSpacing) {
-                            ForEach(1 ..< (pdfDocument.numberOfPages + 1), id: \.self) { pageNumber in
+                            ForEach(1 ..< (pdfDoc.numberOfPages + 1), id: \.self) { pageNumber in
                                 createList(width: (reader.size.width - (Self.gridPadding * 2)), pageNumber: pageNumber)
                             }
                         }
-                        .ignoresSafeArea(.all, edges: .top)
-                        .padding([.horizontal, .bottom], Self.gridPadding)
-                        .padding(.top, Self.gridPadding - 12)
+//                        .ignoresSafeArea(.all, edges: .top)
+                        .padding(Self.gridPadding)
                     }
                     .background(.gray)
                 }
             }
-            .navigationTitle("\(pdfUrl.lastPathComponent)")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("\(pdfDoc.url?.lastPathComponent ?? "")")
         }
         
         private func createList(width: Double, pageNumber: Int) -> some View {
             pagesModel.changeWidth(width)
             
-            return VStack(spacing: 4) {
-                Spacer(minLength: 0)
-                
-                Thumbnail(pagesModel: pagesModel, pageNumber: pageNumber)
-                    .border(.black, width: 0.5)
-                
-                Spacer(minLength: 0)                
-            }
+            return Thumbnail(pagesModel: pagesModel, pageNumber: pageNumber)
+                .border(.black, width: 0.5)
         }
         
         private struct Thumbnail: View {
@@ -98,8 +93,10 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
             var body: some View {
                 if let image = pagesModel.images[pageNumber - 1] {
                     Image(uiImage: image)
+                        .resizable()
+                        .frame(height: 972.5)
                 } else {
-                    Color.gray.opacity(0.5)
+                    Color.white
                         .frame(height: 200)
                 }
             }

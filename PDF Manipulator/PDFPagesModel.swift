@@ -8,6 +8,7 @@
 import Foundation
 import CoreGraphics
 import UIKit
+import PDFKit
 
 final class PDFPagesModel: ObservableObject {
     private let queue = DispatchQueue(label: Bundle.main.bundleIdentifier! + ".pdfgenerator", qos: .userInitiated, attributes: .concurrent)
@@ -72,26 +73,32 @@ final class PDFPagesModel: ObservableObject {
         if enableLogging {
             print("\(Unmanaged.passUnretained(self).toOpaque()), Page number:", pageNumber, ", width:", self.currentWidth)
         }
-        
-        var pageRect = page.getBoxRect(.mediaBox)
-        pageRect = pageRect.applying(CGAffineTransform(rotationAngle: Double(page.rotationAngle) * Double.pi / 180))
-        pageRect.origin = .zero
-        let height = pageRect.height * self.currentWidth / pageRect.width
-        pageRect.size.height = height
-        pageRect.size.width = self.currentWidth
-        
-        let m = page.getDrawingTransform(.mediaBox, rect: pageRect, rotate: 0, preserveAspectRatio: true)
-        let renderer = UIGraphicsImageRenderer(size: pageRect.size)
-        let img = renderer.image { ctx in
-            UIColor.white.set()
-            ctx.fill(pageRect)
-            
-            ctx.cgContext.translateBy(x: 0.0, y: pageRect.size.height)
-            ctx.cgContext.scaleBy(x: 1, y: -1)
-            ctx.cgContext.concatenate(m)
-            
-            ctx.cgContext.drawPDFPage(page)
-        }
+
+        let doc = PDFDocument(url: pdf.url!)!
+        let page1 = doc.page(at: pageNumber - 1)!
+        let bounds = page1.bounds(for: .mediaBox)
+        let img = page1.thumbnail(of: CGSize(width: self.currentWidth * 2, height: bounds.height * self.currentWidth / bounds.width * 2.0), for: .mediaBox)
         return img
+        
+//        var pageRect = page.getBoxRect(.mediaBox)
+//        pageRect = pageRect.applying(CGAffineTransform(rotationAngle: Double(page.rotationAngle) * Double.pi / 180))
+//        pageRect.origin = .zero
+//        let height = pageRect.height * self.currentWidth / pageRect.width
+//        pageRect.size.height = height
+//        pageRect.size.width = self.currentWidth
+//
+//        let m = page.getDrawingTransform(.mediaBox, rect: pageRect, rotate: 0, preserveAspectRatio: true)
+//        let renderer = UIGraphicsImageRenderer(size: pageRect.size)
+//        let img = renderer.image { ctx in
+//            UIColor.white.set()
+//            ctx.fill(pageRect)
+//
+//            ctx.cgContext.translateBy(x: 0.0, y: pageRect.size.height)
+//            ctx.cgContext.scaleBy(x: 1, y: -1)
+//            ctx.cgContext.concatenate(m)
+//
+//            ctx.cgContext.drawPDFPage(page)
+//        }
+//        return img
     }
 }
