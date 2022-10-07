@@ -7,12 +7,13 @@
 
 import Foundation
 import SwiftUI
+import PDFKit
 
 final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewController.OuterPDFThumbnailView> {
-    let pdfDoc: CGPDFDocument
+    let pdfDoc: PDFDocument
     let scene: UIWindowScene
     
-    init(pdfDoc: CGPDFDocument, scene: UIWindowScene) {
+    init(pdfDoc: PDFDocument, scene: UIWindowScene) {
         self.pdfDoc = pdfDoc
         self.scene = scene
         
@@ -26,29 +27,30 @@ final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewCo
 
 extension PDFThumbnailsViewController {
     struct OuterPDFThumbnailView: View {
-        let pdfDoc: CGPDFDocument
+        let pdfDoc: PDFDocument
         let scene: UIWindowScene
         
         var body: some View {
-            PDFThumbnails(pdfDoc: pdfDoc)
+            PDFThumbnails(pdfDoc: pdfDoc, scene: scene)
                 .environment(\.windowScene, scene)
         }
     }
     
     struct PDFThumbnails: View {
-        let pdfDoc: CGPDFDocument
+        let pdfDoc: PDFDocument
+        let scene: UIWindowScene
         @State private var isSelected: [Bool]
         @StateObject private var pagesModel: PDFPagesModel
-        @Environment(\.windowScene) private var scene: UIWindowScene?
         
         private static let horizontalSpacing = 10.0
         private static let verticalSpacing = 15.0
         private static let gridPadding = 15.0
         
-        init(pdfDoc: CGPDFDocument) {
+        init(pdfDoc: PDFDocument, scene: UIWindowScene) {
             self.pdfDoc = pdfDoc
-            _isSelected = State(initialValue: Array(repeating: false, count: pdfDoc.numberOfPages))
-            let pdfPagesModel = PDFPagesModel(pdf: pdfDoc)
+            self.scene = scene
+            _isSelected = State(initialValue: Array(repeating: false, count: pdfDoc.pageCount))
+            let pdfPagesModel = PDFPagesModel(pdf: pdfDoc, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
             _pagesModel = StateObject(wrappedValue: pdfPagesModel)
         }
         
@@ -59,8 +61,8 @@ extension PDFThumbnailsViewController {
                 } else {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.flexible(), spacing: Self.horizontalSpacing), GridItem(.flexible())], spacing: Self.verticalSpacing) {
-                            ForEach(1 ..< (pdfDoc.numberOfPages + 1), id: \.self) { pageNumber in
-                                createList(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2, pageNumber: pageNumber, isSelected: $isSelected[pageNumber - 1])
+                            ForEach(0 ..< pdfDoc.pageCount, id: \.self) { pageIndex in
+                                createList(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2, pageIndex: pageIndex, isSelected: $isSelected[pageIndex])
                             }
                         }
                         .ignoresSafeArea(.all, edges: .top)
@@ -77,24 +79,24 @@ extension PDFThumbnailsViewController {
                     }
                 }
             }
-            //.navigationBarItems(leading: L)
         }
         
-        private func createList(width: Double, pageNumber: Int, isSelected: Binding<Bool>) -> some View {
+        private func createList(width: Double, pageIndex: Int, isSelected: Binding<Bool>) -> some View {
             pagesModel.changeWidth(width)
             
             return VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 
-                Thumbnail(pagesModel: pagesModel, pageNumber: pageNumber, isSelected: isSelected)
+                Thumbnail(pagesModel: pagesModel, pageIndex: pageIndex, isSelected: isSelected)
                     .border(isSelected.wrappedValue ? .blue : .black, width: isSelected.wrappedValue ? 2 : 0.5)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 5)
                     .background(.gray.opacity(0))
+                    .frame(height: pagesModel.pagesAspectRatio[pageIndex] * width)
                 
                 Spacer(minLength: 0)
                 
-                Text("\(pageNumber)")
+                Text("\(pageIndex + 1)")
                     .font(.system(size: 12))
                     .foregroundColor(.white)
                     .padding(.horizontal, 10)
@@ -107,19 +109,19 @@ extension PDFThumbnailsViewController {
         
         private struct Thumbnail: View {
             @StateObject private var pagesModel: PDFPagesModel
-            let pageNumber: Int
+            let pageIndex: Int
             @Binding var isSelected: Bool
             
-            init(pagesModel: PDFPagesModel, pageNumber: Int, isSelected: Binding<Bool>) {
+            init(pagesModel: PDFPagesModel, pageIndex: Int, isSelected: Binding<Bool>) {
                 _pagesModel = StateObject(wrappedValue: pagesModel)
-                self.pageNumber = pageNumber
+                self.pageIndex = pageIndex
                 _isSelected = isSelected
                 
-                pagesModel.fetchThumbnail(pageNumber: pageNumber)
+                pagesModel.fetchThumbnail(pageIndex: pageIndex)
             }
             
             var body: some View {
-                if let image = pagesModel.images[pageNumber - 1] {
+                if let image = pagesModel.images[pageIndex] {
                     Image(uiImage: image)
                         .onTapGesture {
                             withAnimation(.linear(duration: 0.1)) {
@@ -128,7 +130,6 @@ extension PDFThumbnailsViewController {
                         }
                 } else {
                     Color.gray.opacity(0.5)
-                        .frame(height: 200)
                 }
             }
         }

@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import CoreGraphics
 import UIKit
 import PDFKit
 
@@ -17,18 +16,30 @@ final class PDFPagesModel: ObservableObject {
         case notStarted, inProgress, ready
     }
     
-    let pdf: CGPDFDocument
+    let pdf: PDFDocument
+    let displayScale: Double
     let enableLogging: Bool
     
     @Published private(set) var images: [UIImage?]
     private var imageGenerationState: [ImageGenerationState]
+    private(set) var pagesAspectRatio: [Double]
     private var currentWidth = 0.0
     
-    init(pdf: CGPDFDocument, enableLogging: Bool = false) {
+    init(pdf: PDFDocument, displayScale: Double, enableLogging: Bool = false) {
         self.pdf = pdf
+        self.displayScale = displayScale
         self.enableLogging = enableLogging
-        self.images = Array(repeating: nil, count: pdf.numberOfPages)
-        self.imageGenerationState = Array(repeating: .notStarted, count: pdf.numberOfPages)
+        self.images = Array(repeating: nil, count: pdf.pageCount)
+        self.imageGenerationState = Array(repeating: .notStarted, count: pdf.pageCount)
+        self.pagesAspectRatio = Array(repeating: 0.0, count: self.pdf.pageCount)
+        for i in (0 ..< self.pdf.pageCount) {
+            guard let size = self.pdf.page(at: i)?.bounds(for: .mediaBox).size else {
+                self.pagesAspectRatio[i] = 0
+                continue
+            }
+            
+            self.pagesAspectRatio[i] = size.height / size.width
+        }
     }
     
     func changeWidth(_ width: Double) {
@@ -41,64 +52,44 @@ final class PDFPagesModel: ObservableObject {
             
             self.currentWidth = width
             
-            self.imageGenerationState = Array(repeating: .notStarted, count: self.pdf.numberOfPages)
-            self.images = Array(repeating: nil, count: self.pdf.numberOfPages)
+            self.imageGenerationState = Array(repeating: .notStarted, count: self.pdf.pageCount)
+            self.images = Array(repeating: nil, count: self.pdf.pageCount)
         }
     }
     
-    func fetchThumbnail(pageNumber: Int) {
+    func fetchThumbnail(pageIndex: Int) {
         guard self.currentWidth > 0 else { return }
         
-        for i in (pageNumber ..< min(pageNumber + 3, pdf.numberOfPages + 1)) {
-            guard self.imageGenerationState[i - 1] == .notStarted else { return }
+        for i in (pageIndex ..< min(pageIndex + 3, pdf.pageCount)) {
+            guard self.imageGenerationState[i] == .notStarted else { return }
             
-            self.imageGenerationState[i - 1] = .inProgress
+            self.imageGenerationState[i] = .inProgress
           
             self.queue.async {
-                let img = self.createThumbnail(pageNumber: i)
+                let img = self.createThumbnail(pageIndex: i)
                 
                 DispatchQueue.main.sync {
-                    self.imageGenerationState[i - 1] = .ready
-                    self.images[i - 1] = img
+                    self.imageGenerationState[i] = .ready
+                    self.images[i] = img
                 }
             }
         }
     }
     
-    private func createThumbnail(pageNumber: Int) -> UIImage? {
-        guard pdf.numberOfPages >= pageNumber, let page = pdf.page(at: pageNumber) else {
+    private func createThumbnail(pageIndex: Int) -> UIImage? {
+        guard pdf.pageCount > pageIndex, let page = pdf.page(at: pageIndex) else {
             return nil
         }
         
         if enableLogging {
-            print("\(Unmanaged.passUnretained(self).toOpaque()), Page number:", pageNumber, ", width:", self.currentWidth)
+            print("\(Unmanaged.passUnretained(self).toOpaque()), Page index:", pageIndex, ", width:", self.currentWidth)
         }
 
-        let doc = PDFDocument(url: pdf.url!)!
-        let page1 = doc.page(at: pageNumber - 1)!
-        let bounds = page1.bounds(for: .mediaBox)
-        let img = page1.thumbnail(of: CGSize(width: self.currentWidth * 2, height: bounds.height * self.currentWidth / bounds.width * 2.0), for: .mediaBox)
-        return img
+        let bounds = page.bounds(for: .mediaBox)
+        let img = page.thumbnail(of: CGSize(width: self.currentWidth * self.displayScale, height: bounds.height * self.currentWidth / bounds.width * self.displayScale), for: .mediaBox)
         
-//        var pageRect = page.getBoxRect(.mediaBox)
-//        pageRect = pageRect.applying(CGAffineTransform(rotationAngle: Double(page.rotationAngle) * Double.pi / 180))
-//        pageRect.origin = .zero
-//        let height = pageRect.height * self.currentWidth / pageRect.width
-//        pageRect.size.height = height
-//        pageRect.size.width = self.currentWidth
-//
-//        let m = page.getDrawingTransform(.mediaBox, rect: pageRect, rotate: 0, preserveAspectRatio: true)
-//        let renderer = UIGraphicsImageRenderer(size: pageRect.size)
-//        let img = renderer.image { ctx in
-//            UIColor.white.set()
-//            ctx.fill(pageRect)
-//
-//            ctx.cgContext.translateBy(x: 0.0, y: pageRect.size.height)
-//            ctx.cgContext.scaleBy(x: 1, y: -1)
-//            ctx.cgContext.concatenate(m)
-//
-//            ctx.cgContext.drawPDFPage(page)
-//        }
-//        return img
+        guard let imgCGImage = img.cgImage else { return nil }
+        
+        return UIImage(cgImage: imgCGImage, scale: self.displayScale, orientation: .up)
     }
 }

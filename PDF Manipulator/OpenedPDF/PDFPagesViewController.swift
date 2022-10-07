@@ -7,14 +7,17 @@
 
 import Foundation
 import SwiftUI
+import PDFKit
 
 final class PDFPagesViewController: UIHostingController<PDFPagesViewController.OuterPDFMainView> {
-    let pdfDoc: CGPDFDocument
-
-    init(pdfDoc: CGPDFDocument) {
+    let pdfDoc: PDFDocument
+    let scene: UIWindowScene
+    
+    init(pdfDoc: PDFDocument, scene: UIWindowScene) {
         self.pdfDoc = pdfDoc
+        self.scene = scene
         
-        super.init(rootView: OuterPDFMainView(pdfDoc: pdfDoc))
+        super.init(rootView: OuterPDFMainView(pdfDoc: pdfDoc, scene: scene))
     }
     
     override func viewDidLoad() {
@@ -28,15 +31,16 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
     }
 
     struct OuterPDFMainView: View {
-        let pdfDoc: CGPDFDocument
-   
+        let pdfDoc: PDFDocument
+        let scene: UIWindowScene
+
         var body: some View {
-            PDFMainView(pdfDoc: pdfDoc)
+            PDFMainView(pdfDoc: pdfDoc, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
         }
     }
     
     private struct PDFMainView: View {
-        let pdfDoc: CGPDFDocument
+        let pdfDoc: PDFDocument
 
         @StateObject private var pagesModel: PDFPagesModel
         @Environment(\.windowScene) private var scene: UIWindowScene?
@@ -44,9 +48,9 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
 
-        init(pdfDoc: CGPDFDocument) {
+        init(pdfDoc: PDFDocument, displayScale: Double) {
             self.pdfDoc = pdfDoc
-            let pdfPagesModel = PDFPagesModel(pdf: pdfDoc, enableLogging: true)
+            let pdfPagesModel = PDFPagesModel(pdf: pdfDoc, displayScale: displayScale, enableLogging: true)
             _pagesModel = StateObject(wrappedValue: pdfPagesModel)
         }
 
@@ -59,45 +63,42 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                         
                     } content: {
                         LazyVStack(spacing: Self.verticalSpacing) {
-                            ForEach(1 ..< (pdfDoc.numberOfPages + 1), id: \.self) { pageNumber in
-                                createList(width: (reader.size.width - (Self.gridPadding * 2)), pageNumber: pageNumber)
+                            ForEach(0 ..< pdfDoc.pageCount, id: \.self) { pageIndex in
+                                createList(width: (reader.size.width - (Self.gridPadding * 2)), pageIndex: pageIndex)
                             }
                         }
-//                        .ignoresSafeArea(.all, edges: .top)
                         .padding(Self.gridPadding)
                     }
                     .background(.gray)
                 }
             }
-            .navigationTitle("\(pdfDoc.url?.lastPathComponent ?? "")")
+            .navigationTitle("\(pdfDoc.documentURL?.lastPathComponent ?? "")")
         }
         
-        private func createList(width: Double, pageNumber: Int) -> some View {
+        private func createList(width: Double, pageIndex: Int) -> some View {
             pagesModel.changeWidth(width)
             
-            return Thumbnail(pagesModel: pagesModel, pageNumber: pageNumber)
+            return Thumbnail(pagesModel: pagesModel, pageIndex: pageIndex)
                 .border(.black, width: 0.5)
+                .frame(height: pagesModel.pagesAspectRatio[pageIndex] * width)
         }
         
         private struct Thumbnail: View {
             @StateObject private var pagesModel: PDFPagesModel
-            let pageNumber: Int
+            let pageIndex: Int
             
-            init(pagesModel: PDFPagesModel, pageNumber: Int) {
+            init(pagesModel: PDFPagesModel, pageIndex: Int) {
                 _pagesModel = StateObject(wrappedValue: pagesModel)
-                self.pageNumber = pageNumber
+                self.pageIndex = pageIndex
                 
-                pagesModel.fetchThumbnail(pageNumber: pageNumber)
+                pagesModel.fetchThumbnail(pageIndex: pageIndex)
             }
             
             var body: some View {
-                if let image = pagesModel.images[pageNumber - 1] {
+                if let image = pagesModel.images[pageIndex] {
                     Image(uiImage: image)
-                        .resizable()
-                        .frame(height: 972.5)
                 } else {
                     Color.white
-                        .frame(height: 200)
                 }
             }
         }

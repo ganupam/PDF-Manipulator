@@ -6,23 +6,23 @@
 //
 
 import UIKit
+import PDFKit
 
 final class SplitViewController: UISplitViewController {
     let pdfUrl: URL
     let scene: UIWindowScene
-    private let pdfDoc: CGPDFDocument
+    private let pdfDoc: PDFDocument
     
     init(pdfUrl: URL, scene: UIWindowScene) {
         self.pdfUrl = pdfUrl
         self.scene = scene
-        self.pdfDoc = CGPDFDocument(pdfUrl as CFURL)!
-        self.pdfDoc.url = pdfUrl
+        self.pdfDoc = PDFDocument(url: pdfUrl)!
         
         super.init(style: .doubleColumn)
         
         self.setViewController(PDFThumbnailsViewController(pdfDoc: pdfDoc, scene: scene), for: .primary)
         
-        let vc = PDFPagesViewController(pdfDoc: pdfDoc)
+        let vc = PDFPagesViewController(pdfDoc: pdfDoc, scene: scene)
         let navVC = UINavigationController(rootViewController: vc)
         self.setViewController(navVC, for: .secondary)
     }
