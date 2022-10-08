@@ -20,7 +20,7 @@ final class PDFPagesModel: ObservableObject {
     let displayScale: Double
     let enableLogging: Bool
     
-    @Published private(set) var images: [UIImage?]
+    @Published var images: [UIImage?]
     private var imageGenerationState: [ImageGenerationState]
     private(set) var pagesAspectRatio: [Double]
     private var currentWidth = 0.0
@@ -91,5 +91,21 @@ final class PDFPagesModel: ObservableObject {
         guard let imgCGImage = img.cgImage else { return nil }
         
         return UIImage(cgImage: imgCGImage, scale: self.displayScale, orientation: .up)
+    }
+    
+    func appendPages(_ pages: [PDFPage]) {
+        var newPageIndices = [Int]()
+        pages.forEach {
+            let size = $0.bounds(for: .mediaBox)
+            self.pagesAspectRatio.append(size.height / size.width)
+            self.imageGenerationState.append(.notStarted)
+            self.images.append(nil)
+            pdf.insert($0, at: pdf.pageCount)
+            newPageIndices.append(pdf.pageCount)
+        }
+        
+        newPageIndices.forEach {
+            self.fetchThumbnail(pageIndex: $0)
+        }
     }
 }

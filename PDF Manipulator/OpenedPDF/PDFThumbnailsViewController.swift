@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import PDFKit
+import UniformTypeIdentifiers
 
 final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewController.OuterPDFThumbnailView> {
     let pdfDoc: PDFDocument
@@ -41,6 +42,9 @@ extension PDFThumbnailsViewController {
         let scene: UIWindowScene
         @State private var isSelected: [Bool]
         @StateObject private var pagesModel: PDFPagesModel
+        @State private var pageIDs: [UUID]
+        @State private var draggingPageID: UUID?
+        @State private var dragStarted = false
         
         private static let horizontalSpacing = 10.0
         private static let verticalSpacing = 15.0
@@ -52,6 +56,12 @@ extension PDFThumbnailsViewController {
             _isSelected = State(initialValue: Array(repeating: false, count: pdfDoc.pageCount))
             let pdfPagesModel = PDFPagesModel(pdf: pdfDoc, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
             _pagesModel = StateObject(wrappedValue: pdfPagesModel)
+            
+            var IDs = [UUID]()
+            for _ in 0 ..< pdfDoc.pageCount {
+                IDs.append(UUID())
+            }
+            _pageIDs = State(initialValue: IDs)
         }
         
         var body: some View {
@@ -61,22 +71,76 @@ extension PDFThumbnailsViewController {
                 } else {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.flexible(), spacing: Self.horizontalSpacing), GridItem(.flexible())], spacing: Self.verticalSpacing) {
-                            ForEach(0 ..< pdfDoc.pageCount, id: \.self) { pageIndex in
+                            ForEach(0 ..< pagesModel.images.count, id: \.self) { pageIndex in
                                 createList(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2, pageIndex: pageIndex, isSelected: $isSelected[pageIndex])
+                                    .overlay(draggingPageID == self.pageIDs[pageIndex] && dragStarted ? Color.white.opacity(0.5) : Color.clear)
+        //                                    .onDrag {
+        //                                        draggingPageID = self.pageIDs[pageIndex]
+        //                                        let itemProvider = NSItemProvider(item: nil, typeIdentifier: UTType.pdf.identifier)
+        //                                        itemProvider.registerObject(of: , visibility: .all, loadHandler: <#T##((NSItemProviderWriting?, Error?) -> Void) -> Progress?#>)
+        //                                    }
                             }
                         }
                         .ignoresSafeArea(.all, edges: .top)
                         .padding(Self.gridPadding)
                     }
+                    .onDrop(of: [UTType.pdf], isTargeted: nil) { itemProviders in
+                        self.handleDropItemProviders(itemProviders)
+                        return true
+                    }
+                }
+            }
+            .onReceive(pagesModel.$images) { newImages in
+                isSelected = Array(repeating: false, count: newImages.count)
+                pageIDs.removeAll(keepingCapacity: true)
+                for _ in 0 ..< newImages.count {
+                    pageIDs.append(UUID())
                 }
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        
+                        pagesModel.images.append(UIImage(systemName: "doc.badge.plus")!)
                     } label: {
                         Image(systemName: "doc.badge.plus")
                     }
+                }
+            }
+        }
+        
+        private func handleDropItemProviders(_ itemProviders: [NSItemProvider]) {
+            var pages = [PDFPage]()
+            var urls = [URL]()
+            let group = DispatchGroup()
+            
+            itemProviders.forEach {
+                group.enter()
+                $0.loadItem(forTypeIdentifier: UTType.pdf.identifier) { (data, error) in
+                    defer {
+                        group.leave()
+                    }
+                    
+                    guard let url = data as? URL, url.startAccessingSecurityScopedResource() else { return }
+                    
+                    DispatchQueue.main.sync {
+                        urls.append(url)
+                        
+                        guard let pdf = PDFDocument(url: url) else { return }
+                        
+                        for i in 0 ..< pdf.pageCount {
+                            guard let page = pdf.page(at: i) else { continue }
+                            
+                            pages.append(page)
+                        }
+                    }
+                }
+            }
+            
+            group.notify(queue: .main) {
+                self.pagesModel.appendPages(pages)
+                
+                urls.forEach {
+                    $0.stopAccessingSecurityScopedResource()
                 }
             }
         }
