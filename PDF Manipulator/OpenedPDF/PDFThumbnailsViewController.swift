@@ -11,6 +11,8 @@ import PDFKit
 import UniformTypeIdentifiers
 
 final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewController.OuterPDFThumbnailView> {
+    private static let supportedDroppedItemProviders = [UTType.pdf, UTType.jpeg, UTType.gif, UTType.bmp, UTType.png, UTType.tiff]
+    
     let pdfDoc: PDFDocument
     let scene: UIWindowScene
     
@@ -79,7 +81,7 @@ extension PDFThumbnailsViewController {
                         .ignoresSafeArea(.all, edges: .top)
                         .padding(Self.gridPadding)
                     }
-                    .onDrop(of: [UTType.pdf], isTargeted: nil) { (itemProviders) -> Bool in
+                    .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, isTargeted: nil) { itemProviders in
                         self.handleDropItemProviders(itemProviders)
                         return true
                     }
@@ -109,9 +111,13 @@ extension PDFThumbnailsViewController {
             var urls = [URL]()
             let group = DispatchGroup()
             
-            itemProviders.forEach {
+            itemProviders.forEach { itemProvider in
+                guard let typeIdentifier = (PDFThumbnailsViewController.supportedDroppedItemProviders.first {
+                    itemProvider.registeredTypeIdentifiers.contains($0.identifier)
+                }) else { return }
+                
                 group.enter()
-                $0.loadItem(forTypeIdentifier: UTType.pdf.identifier) { (data, error) in
+                itemProvider.loadItem(forTypeIdentifier: typeIdentifier.identifier) { (data, error) in
                     defer {
                         group.leave()
                     }
@@ -121,13 +127,7 @@ extension PDFThumbnailsViewController {
                     DispatchQueue.main.sync {
                         urls.append(url)
                         
-                        guard let pdf = PDFDocument(url: url) else { return }
-                        
-                        for i in 0 ..< pdf.pageCount {
-                            guard let page = pdf.page(at: i) else { continue }
-                            
-                            pages.append(page)
-                        }
+                        pages.append(contentsOf: self.pdfPages(from: url, typeIdentifier: typeIdentifier))
                     }
                 }
             }
@@ -138,6 +138,30 @@ extension PDFThumbnailsViewController {
                 urls.forEach {
                     $0.stopAccessingSecurityScopedResource()
                 }
+            }
+        }
+        
+        private func pdfPages(from url: URL, typeIdentifier: UTType) -> [PDFPage] {
+            switch typeIdentifier {
+            case .pdf:
+                guard let pdf = PDFDocument(url: url) else { return [] }
+                
+                var pages = [PDFPage]()
+                for i in 0 ..< pdf.pageCount {
+                    guard let page = pdf.page(at: i) else { continue }
+                    
+                    pages.append(page)
+                }
+                
+                return pages
+                
+            case .jpeg, .png, .tiff, .gif, .bmp:
+                guard let data = try? Data(contentsOf: url), let image = UIImage(data: data), let page = PDFPage(image: image) else { return [] }
+                
+                return [page]
+                
+            default:
+                return []
             }
         }
         

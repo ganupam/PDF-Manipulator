@@ -37,12 +37,14 @@ final class PDFPagesModel: ObservableObject {
         self.imageGenerationState = Array(repeating: .notStarted, count: pdf.pageCount)
         self.pagesAspectRatio = Array(repeating: 0.0, count: self.pdf.pageCount)
         for i in (0 ..< self.pdf.pageCount) {
-            guard let size = self.pdf.page(at: i)?.bounds(for: .mediaBox).size else {
+            guard let page = self.pdf.page(at: i) else {
                 self.pagesAspectRatio[i] = 0
                 continue
             }
             
-            self.pagesAspectRatio[i] = size.height / size.width
+            let size = page.bounds(for: .mediaBox).size
+            let rotationAngle = page.rotation
+            self.pagesAspectRatio[i] = ((rotationAngle % 180) == 0) ? (size.height / size.width) : (size.width / size.height)
         }
         
         NotificationCenter.default.addObserver(self, selector: #selector(willInsertPages), name: Self.willInsertPages, object: nil)
