@@ -22,6 +22,7 @@ final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
             return
         }
         window.rootViewController = SplitViewController(pdfUrl: url, scene: windowScene)
+        windowScene.title = url.lastPathComponent
         window.makeKeyAndVisible()
         self.window = window
     }

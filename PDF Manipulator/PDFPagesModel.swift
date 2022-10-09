@@ -10,6 +10,10 @@ import UIKit
 import PDFKit
 
 final class PDFPagesModel: ObservableObject {
+    static let willInsertPages = Notification.Name("willInsertPages")
+    static let pagesInsertionIndicesKey = "pagesInsertionIndices"
+    static let pagesWillInsertKey = "pagesWillInsert"
+
     private let queue = DispatchQueue(label: Bundle.main.bundleIdentifier! + ".pdfgenerator", qos: .userInitiated, attributes: .concurrent)
     
     private enum ImageGenerationState {
@@ -20,7 +24,7 @@ final class PDFPagesModel: ObservableObject {
     let displayScale: Double
     let enableLogging: Bool
     
-    @Published var images: [UIImage?]
+    @Published private(set) var images: [UIImage?]
     private var imageGenerationState: [ImageGenerationState]
     private(set) var pagesAspectRatio: [Double]
     private var currentWidth = 0.0
@@ -40,6 +44,8 @@ final class PDFPagesModel: ObservableObject {
             
             self.pagesAspectRatio[i] = size.height / size.width
         }
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(willInsertPages), name: Self.willInsertPages, object: nil)
     }
     
     func changeWidth(_ width: Double) {
@@ -94,18 +100,40 @@ final class PDFPagesModel: ObservableObject {
     }
     
     func appendPages(_ pages: [PDFPage]) {
-        var newPageIndices = [Int]()
-        pages.forEach {
-            let size = $0.bounds(for: .mediaBox)
-            self.pagesAspectRatio.append(size.height / size.width)
-            self.imageGenerationState.append(.notStarted)
-            self.images.append(nil)
-            pdf.insert($0, at: pdf.pageCount)
-            newPageIndices.append(pdf.pageCount)
-        }
+        self.insertPages(pages, at: self.pdf.pageCount)
+    }
+    
+    func insertPages(_ pages: [PDFPage], at index: Int) {
+        guard index <= self.pdf.pageCount else { return }
         
-        newPageIndices.forEach {
-            self.fetchThumbnail(pageIndex: $0)
+        let newPageIndices = (index ..< index + pages.count).map { $0 }
+        NotificationCenter.default.post(name: Self.willInsertPages, object: self, userInfo: [Self.pagesInsertionIndicesKey : newPageIndices, Self.pagesWillInsertKey : pages])
+        
+        pages.enumerated().forEach {
+            let (i, page) = $0
+            pdf.insert(page, at: newPageIndices[i])
         }
+
+        self.updateInternalState(pages, indices: newPageIndices)
+    }
+    
+    private func updateInternalState(_ pages: [PDFPage], indices: [Int]) {
+        guard pages.count == indices.count else { return }
+        
+        pages.enumerated().forEach {
+            let (i, page) = $0
+            let size = page.bounds(for: .mediaBox)
+            self.pagesAspectRatio.insert(size.height / size.width, at: indices[i])
+            self.imageGenerationState.insert(.notStarted, at: indices[i])
+            self.images.insert(nil, at: indices[i])
+        }
+    }
+    
+    @objc private func willInsertPages(_ notification: NSNotification) {
+        guard let otherPDFPagesModel = notification.object as? Self, otherPDFPagesModel !== self, otherPDFPagesModel.pdf.documentURL == self.pdf.documentURL else { return }
+        
+        guard let pages = notification.userInfo?[Self.pagesWillInsertKey] as? [PDFPage], let indices = notification.userInfo?[Self.pagesInsertionIndicesKey] as? [Int] else { return }
+        
+        self.updateInternalState(pages, indices: indices)
     }
 }

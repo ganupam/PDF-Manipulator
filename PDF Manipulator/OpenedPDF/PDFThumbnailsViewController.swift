@@ -74,33 +74,29 @@ extension PDFThumbnailsViewController {
                             ForEach(0 ..< pagesModel.images.count, id: \.self) { pageIndex in
                                 createList(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2, pageIndex: pageIndex, isSelected: $isSelected[pageIndex])
                                     .overlay(draggingPageID == self.pageIDs[pageIndex] && dragStarted ? Color.white.opacity(0.5) : Color.clear)
-        //                                    .onDrag {
-        //                                        draggingPageID = self.pageIDs[pageIndex]
-        //                                        let itemProvider = NSItemProvider(item: nil, typeIdentifier: UTType.pdf.identifier)
-        //                                        itemProvider.registerObject(of: , visibility: .all, loadHandler: <#T##((NSItemProviderWriting?, Error?) -> Void) -> Progress?#>)
-        //                                    }
                             }
                         }
                         .ignoresSafeArea(.all, edges: .top)
                         .padding(Self.gridPadding)
                     }
-                    .onDrop(of: [UTType.pdf], isTargeted: nil) { itemProviders in
+                    .onDrop(of: [UTType.pdf], isTargeted: nil) { (itemProviders) -> Bool in
                         self.handleDropItemProviders(itemProviders)
                         return true
                     }
                 }
             }
-            .onReceive(pagesModel.$images) { newImages in
-                isSelected = Array(repeating: false, count: newImages.count)
-                pageIDs.removeAll(keepingCapacity: true)
-                for _ in 0 ..< newImages.count {
-                    pageIDs.append(UUID())
+            .onReceive(NotificationCenter.default.publisher(for: PDFPagesModel.willInsertPages)) { notification in
+                guard let indices = notification.userInfo?[PDFPagesModel.pagesInsertionIndicesKey] as? [Int] else { return }
+                
+                for index in indices {
+                    isSelected.insert(false, at: index)
+                    pageIDs.insert(UUID(), at: index)
                 }
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        pagesModel.images.append(UIImage(systemName: "doc.badge.plus")!)
+
                     } label: {
                         Image(systemName: "doc.badge.plus")
                     }

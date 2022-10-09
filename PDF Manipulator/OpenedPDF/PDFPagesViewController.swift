@@ -50,7 +50,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
 
         init(pdfDoc: PDFDocument, displayScale: Double) {
             self.pdfDoc = pdfDoc
-            let pdfPagesModel = PDFPagesModel(pdf: pdfDoc, displayScale: displayScale, enableLogging: true)
+            let pdfPagesModel = PDFPagesModel(pdf: pdfDoc, displayScale: displayScale)
             _pagesModel = StateObject(wrappedValue: pdfPagesModel)
         }
 
