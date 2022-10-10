@@ -47,7 +47,8 @@ extension PDFThumbnailsViewController {
         @State private var pageIDs: [UUID]
         @State private var draggingPageID: UUID?
         @State private var dragStarted = false
-        
+        @State private var dropFakePageIndex: Int? = nil
+
         private static let horizontalSpacing = 10.0
         private static let verticalSpacing = 15.0
         private static let gridPadding = 15.0
@@ -97,21 +98,24 @@ extension PDFThumbnailsViewController {
                 } else {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.flexible(), spacing: Self.horizontalSpacing), GridItem(.flexible())], spacing: Self.verticalSpacing) {
-                            ForEach(0 ..< pagesModel.images.count, id: \.self) { pageIndex in
-                                createList(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2, pageIndex: pageIndex, isSelected: $isSelected[pageIndex])
-                                    //.overlay(draggingPageID == self.pageIDs[pageIndex] && dragStarted ? Color.white.opacity(0.5) : Color.clear)
-                                    .onDrag {
-                                        return dragItemProvider(pageIndex: pageIndex)
+                            ForEach(0 ..< pagesModel.images.count + ((dropFakePageIndex != nil) ? 1 : 0), id: \.self) { pageIndex in
+                                if pageIndex == dropFakePageIndex {
+                                    VStack(spacing: 0) {
+                                        Color.gray.opacity(0.5)
+                                            .border(.black, width: 0.5)
+                                            .frame(height: 1.29 * (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2)
+                                        
+                                        Spacer()
                                     }
+                                } else {
+                                    createThumbnail(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2, pageIndex: pageIndex)
+                                }
                             }
                         }
                         .ignoresSafeArea(.all, edges: .top)
                         .padding(Self.gridPadding)
                     }
-                    .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, isTargeted: nil) { itemProviders in
-                        self.handleDropItemProviders(itemProviders)
-                        return true
-                    }
+                    .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ScrollViewDropDelegate(dropFakePageIndex: $dropFakePageIndex, dropped: self.handleDropItemProviders))
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: PDFPagesModel.willInsertPages)) { notification in
@@ -133,7 +137,7 @@ extension PDFThumbnailsViewController {
             }
         }
         
-        private func handleDropItemProviders(_ itemProviders: [NSItemProvider]) {
+        private func handleDropItemProviders(_ itemProviders: [NSItemProvider], insertionIndex: Int) {
             var pages = [PDFPage]()
             var urls = [URL]()
             let group = DispatchGroup()
@@ -160,7 +164,7 @@ extension PDFThumbnailsViewController {
             }
             
             group.notify(queue: .main) {
-                self.pagesModel.appendPages(pages)
+                self.pagesModel.insertPages(pages, at: insertionIndex)
                 
                 urls.forEach {
                     $0.stopAccessingSecurityScopedResource()
@@ -193,30 +197,39 @@ extension PDFThumbnailsViewController {
             }
         }
         
-        private func createList(width: Double, pageIndex: Int, isSelected: Binding<Bool>) -> some View {
+        private func createThumbnail(width: Double, pageIndex: Int) -> some View {
             pagesModel.changeWidth(width)
             
+            var adjustedPageIndex = pageIndex
+            if let dropFakePageIndex, pageIndex > dropFakePageIndex {
+                adjustedPageIndex -= 1
+            }
+
             return VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 
-                Thumbnail(pagesModel: pagesModel, pageIndex: pageIndex, isSelected: isSelected)
-                    .border(isSelected.wrappedValue ? .blue : .black, width: isSelected.wrappedValue ? 2 : 0.5)
+                Thumbnail(pagesModel: pagesModel, pageIndex: adjustedPageIndex, isSelected: $isSelected[adjustedPageIndex])
+                    .border(isSelected[adjustedPageIndex] ? .blue : .black, width: isSelected[adjustedPageIndex] ? 2 : 0.5)
+                    .onDrag {
+                        return dragItemProvider(pageIndex: adjustedPageIndex)
+                    }
                     .padding(.horizontal, 5)
                     .padding(.vertical, 5)
-                    .background(.gray.opacity(0))
-                    .frame(height: pagesModel.pagesAspectRatio[pageIndex] * width)
+                    .frame(height: pagesModel.pagesAspectRatio[adjustedPageIndex] * width)
+
                 
                 Spacer(minLength: 0)
                 
-                Text("\(pageIndex + 1)")
+                Text("\(adjustedPageIndex + 1)")
                     .font(.system(size: 12))
                     .foregroundColor(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(isSelected.wrappedValue ? Color.blue : Color.black)
+                    .background(isSelected[adjustedPageIndex] ? Color.blue : Color.black)
                     .clipShape(Capsule())
                     .padding(.top, 5)
             }
+            .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ThumbnailDropDelegate(pageIndex: pageIndex, dropFakePageIndex: $dropFakePageIndex, dropped: self.handleDropItemProviders))
         }
         
         private struct Thumbnail: View {
@@ -246,4 +259,57 @@ extension PDFThumbnailsViewController {
             }
         }
     }
+}
+
+extension PDFThumbnailsViewController.PDFThumbnails {
+    private static let dropAnimationDuration = 0.1
+    
+    struct ThumbnailDropDelegate: DropDelegate {
+        let pageIndex: Int
+        @Binding var dropFakePageIndex: Int?
+        let dropped: ([NSItemProvider], Int) -> Void
+
+        func dropUpdated(info: DropInfo) -> DropProposal? {
+            withAnimation(.linear(duration: PDFThumbnailsViewController.PDFThumbnails.dropAnimationDuration)) {
+                dropFakePageIndex = pageIndex
+            }
+            return DropProposal(operation: .copy)
+        }
+        
+        func performDrop(info: DropInfo) -> Bool {
+            let insertionIndex = dropFakePageIndex ?? 0
+
+            withAnimation(.linear(duration: PDFThumbnailsViewController.PDFThumbnails.dropAnimationDuration)) {
+                dropFakePageIndex = nil
+            }
+
+            let itemProviders = info.itemProviders(for: PDFThumbnailsViewController.supportedDroppedItemProviders)
+            dropped(itemProviders, insertionIndex)
+            return true
+        }
+    }
+    
+    struct ScrollViewDropDelegate: DropDelegate {
+        @Binding var dropFakePageIndex: Int?
+        let dropped: ([NSItemProvider], Int) -> Void
+        
+        func dropExited(info: DropInfo) {
+            withAnimation(.linear(duration: PDFThumbnailsViewController.PDFThumbnails.dropAnimationDuration)) {
+                dropFakePageIndex = nil
+            }
+        }
+        
+        func performDrop(info: DropInfo) -> Bool {
+            let insertionIndex = dropFakePageIndex ?? 0
+            
+            withAnimation(.linear(duration: PDFThumbnailsViewController.PDFThumbnails.dropAnimationDuration)) {
+                dropFakePageIndex = nil
+            }
+            
+            let itemProviders = info.itemProviders(for: PDFThumbnailsViewController.supportedDroppedItemProviders)
+            dropped(itemProviders, insertionIndex)
+            return true
+        }
+    }
+
 }
