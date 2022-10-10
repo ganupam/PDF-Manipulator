@@ -9,3 +9,4 @@ import Foundation
 
 let activePageChangedNotification = Notification.Name("activePageChanged")
 let activePageNumberKey = "activePageNumberKey"
+

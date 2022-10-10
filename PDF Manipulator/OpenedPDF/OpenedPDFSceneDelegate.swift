@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import PDFKit
 
 final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
@@ -17,11 +18,12 @@ final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
           
         let window = UIWindow(windowScene: windowScene)
-        var bookmarkDataIsStale = true
-        guard let bookmarkData = session.userInfo?[.urlBookmarkDataKey] as? Data, let url = try? URL(resolvingBookmarkData: bookmarkData, bookmarkDataIsStale: &bookmarkDataIsStale) else {
+        guard let url = session.url else {
             return
         }
-        window.rootViewController = SplitViewController(pdfUrl: url, scene: windowScene)
+        
+        session.pdfDoc = PDFDocument(url: url)
+        window.rootViewController = SplitViewController(scene: windowScene)
         windowScene.title = url.lastPathComponent
         window.makeKeyAndVisible()
         self.window = window

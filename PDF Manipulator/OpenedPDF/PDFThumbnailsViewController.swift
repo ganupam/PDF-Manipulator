@@ -118,12 +118,24 @@ extension PDFThumbnailsViewController {
                     .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ScrollViewDropDelegate(pageIndex:pagesModel.images.count, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: PDFPagesModel.willInsertPages, object: pagesModel)) { notification in
-                guard let indices = notification.userInfo?[PDFPagesModel.pagesInsertionIndicesKey] as? [Int] else { return }
+            .onReceive(NotificationCenter.default.publisher(for: PDFPagesModel.willInsertPages)) { notification in
+                guard (notification.object as? PDFPagesModel)?.pdf.documentURL == pdfDoc.documentURL else { return }
+                
+                guard let indices = notification.userInfo?[PDFPagesModel.pagesIndicesKey] as? [Int] else { return }
                 
                 for index in indices {
                     isSelected.insert(false, at: index)
                     pageIDs.insert(UUID(), at: index)
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: PDFPagesModel.willDeletePages)) { notification in
+                guard (notification.object as? PDFPagesModel)?.pdf.documentURL == pdfDoc.documentURL else { return }
+
+                guard let indices = notification.userInfo?[PDFPagesModel.pagesIndicesKey] as? [Int] else { return }
+                
+                for index in indices {
+                    isSelected.remove(at: index)
+                    pageIDs.remove(at: index)
                 }
             }
             .toolbar {
@@ -210,10 +222,69 @@ extension PDFThumbnailsViewController {
                 Spacer(minLength: 0)
                 
                 Thumbnail(pagesModel: pagesModel, pageIndex: adjustedPageIndex, isSelected: $isSelected[adjustedPageIndex])
-                    .border(isSelected[adjustedPageIndex] ? .blue : .black, width: isSelected[adjustedPageIndex] ? 2 : 0.5)
                     .onDrag {
                         return dragItemProvider(pageIndex: adjustedPageIndex)
                     }
+                    .contextMenu {
+                        Section {
+                            Button {
+                                pagesModel.rotateLeft(adjustedPageIndex)
+                            } label: {
+                                Label {
+                                    Text("pageRotateLeft")
+                                } icon: {
+                                    Image(systemName: "rotate.left")
+                                }
+                            }
+                            
+                            Button {
+                                pagesModel.rotateRight(adjustedPageIndex)
+                            } label: {
+                                Label {
+                                    Text("pageRotateRight")
+                                } icon: {
+                                    Image(systemName: "rotate.right")
+                                }
+                            }
+                        }
+                        
+                        Section {
+                            ForEach(Array(UIApplication.shared.openSessions), id: \.self) { session in
+                                if session.url != scene.session.url, let filename = session.url?.lastPathComponent {
+                                    Button {
+                                        if let page = pagesModel.pdf.page(at: adjustedPageIndex) {
+                                            var timer: Timer? = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { _ in
+                                                session.addPages([page])
+                                            }
+                                            UIApplication.shared.requestSceneSessionActivation(session, userActivity: nil, options: nil) { _ in
+                                                timer?.invalidate()
+                                            }
+                                        }
+                                    } label: {
+                                        Label {
+                                            Text(String(format: NSLocalizedString("addPageToOpenDoc", comment: ""), filename))
+                                        } icon: {
+                                            Image(systemName: "plus.rectangle.portrait")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Section {
+                            Button(role: .destructive) {
+                                pagesModel.delete(adjustedPageIndex)
+                            } label: {
+                                Label {
+                                    Text("pageDelete")
+                                } icon: {
+                                    Image("delete-page")
+                                        .renderingMode(.template)
+                                }
+                            }
+                        }
+                    }
+                    .border(isSelected[adjustedPageIndex] ? .blue : .black, width: isSelected[adjustedPageIndex] ? 2 : 0.5)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 5)
                     .frame(height: pagesModel.pagesAspectRatio[adjustedPageIndex] * width)
@@ -247,15 +318,17 @@ extension PDFThumbnailsViewController {
             }
             
             var body: some View {
-                if let image = pagesModel.images[pageIndex] {
-                    Image(uiImage: image)
-                        .onTapGesture {
-                            withAnimation(.linear(duration: 0.1)) {
-                                isSelected.toggle()
+                if pageIndex < pagesModel.images.count { // This is false when the pages is deleted from context menu
+                    if let image = pagesModel.images[pageIndex] {
+                        Image(uiImage: image)
+                            .onTapGesture {
+                                withAnimation(.linear(duration: 0.1)) {
+                                    isSelected.toggle()
+                                }
                             }
-                        }
-                } else {
-                    Color.gray.opacity(0.5)
+                    } else {
+                        Color.gray.opacity(0.5)
+                    }
                 }
             }
         }

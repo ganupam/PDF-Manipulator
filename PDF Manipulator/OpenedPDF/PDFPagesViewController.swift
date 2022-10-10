@@ -95,10 +95,12 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
             }
             
             var body: some View {
-                if let image = pagesModel.images[pageIndex] {
-                    Image(uiImage: image)
-                } else {
-                    Color.white
+                if pageIndex < pagesModel.images.count {
+                    if let image = pagesModel.images[pageIndex] {
+                        Image(uiImage: image)
+                    } else {
+                        Color.white
+                    }
                 }
             }
         }

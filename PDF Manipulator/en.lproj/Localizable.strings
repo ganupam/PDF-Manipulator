@@ -8,3 +8,7 @@
 
 "unableToOpen" = "Unable to open selected file";
 "generalOK" = "OK";
+"pageRotateLeft" = "Rotate left";
+"pageRotateRight" = "Rotate right";
+"pageDelete" = "Delete";
+"addPageToOpenDoc" = "Add to %1$@";

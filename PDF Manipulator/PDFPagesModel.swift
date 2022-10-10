@@ -11,8 +11,10 @@ import PDFKit
 
 final class PDFPagesModel: ObservableObject {
     static let willInsertPages = Notification.Name("willInsertPages")
-    static let pagesInsertionIndicesKey = "pagesInsertionIndices"
+    static let pagesIndicesKey = "pagesInsertionIndices"
     static let pagesWillInsertKey = "pagesWillInsert"
+    
+    static let willDeletePages = Notification.Name("willDeletePages")
 
     private let queue = DispatchQueue(label: Bundle.main.bundleIdentifier! + ".pdfgenerator", qos: .userInitiated, attributes: .concurrent)
     
@@ -48,6 +50,7 @@ final class PDFPagesModel: ObservableObject {
         }
         
         NotificationCenter.default.addObserver(self, selector: #selector(willInsertPages), name: Self.willInsertPages, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(willDeletePages), name: Self.willDeletePages, object: nil)
     }
     
     func changeWidth(_ width: Double) {
@@ -109,17 +112,17 @@ final class PDFPagesModel: ObservableObject {
         guard index <= self.pdf.pageCount else { return }
         
         let newPageIndices = (index ..< index + pages.count).map { $0 }
-        NotificationCenter.default.post(name: Self.willInsertPages, object: self, userInfo: [Self.pagesInsertionIndicesKey : newPageIndices, Self.pagesWillInsertKey : pages])
+        NotificationCenter.default.post(name: Self.willInsertPages, object: self, userInfo: [Self.pagesIndicesKey : newPageIndices, Self.pagesWillInsertKey : pages])
         
         pages.enumerated().forEach {
             let (i, page) = $0
             pdf.insert(page, at: newPageIndices[i])
         }
 
-        self.updateInternalState(pages, indices: newPageIndices)
+        self.updateInternalStateAfterInsertion(pages, indices: newPageIndices)
     }
     
-    private func updateInternalState(_ pages: [PDFPage], indices: [Int]) {
+    private func updateInternalStateAfterInsertion(_ pages: [PDFPage], indices: [Int]) {
         guard pages.count == indices.count else { return }
         
         pages.enumerated().forEach {
@@ -134,8 +137,57 @@ final class PDFPagesModel: ObservableObject {
     @objc private func willInsertPages(_ notification: NSNotification) {
         guard let otherPDFPagesModel = notification.object as? Self, otherPDFPagesModel !== self, otherPDFPagesModel.pdf.documentURL == self.pdf.documentURL else { return }
         
-        guard let pages = notification.userInfo?[Self.pagesWillInsertKey] as? [PDFPage], let indices = notification.userInfo?[Self.pagesInsertionIndicesKey] as? [Int] else { return }
+        guard let pages = notification.userInfo?[Self.pagesWillInsertKey] as? [PDFPage], let indices = notification.userInfo?[Self.pagesIndicesKey] as? [Int] else { return }
         
-        self.updateInternalState(pages, indices: indices)
+        self.updateInternalStateAfterInsertion(pages, indices: indices)
+    }
+    
+    @objc private func willDeletePages(_ notification: NSNotification) {
+        guard let otherPDFPagesModel = notification.object as? Self, otherPDFPagesModel !== self, otherPDFPagesModel.pdf.documentURL == self.pdf.documentURL else { return }
+        
+        guard let indices = notification.userInfo?[Self.pagesIndicesKey] as? [Int] else { return }
+        
+        self.updateInternalStateAfterDeletion(indices)
+    }
+    
+    func rotateLeft(_ index: Int) {
+        self.rotate(index, angle: -90)
+    }
+    
+    func rotateRight(_ index: Int) {
+        self.rotate(index, angle: 90)
+    }
+    
+    private func rotate(_ index: Int, angle: Int) {
+        guard let page = self.pdf.page(at: index) else { return }
+        
+        page.rotation += angle
+        self.imageGenerationState[index] = .notStarted
+        self.images[index] = nil
+    }
+    
+    func delete(_ index: Int) {
+        self.delete([index])
+    }
+    
+    func delete(_ indices: [Int]) {
+        let indices = indices.sorted().reversed()
+        
+        guard (indices.allSatisfy { $0 < self.pdf.pageCount }) else { return }
+        
+        NotificationCenter.default.post(name: Self.willDeletePages, object: self, userInfo: [Self.pagesIndicesKey : Array(indices)])
+
+        indices.forEach {
+            self.pdf.removePage(at: $0)
+        }
+        self.updateInternalStateAfterDeletion(Array(indices))
+    }
+    
+    private func updateInternalStateAfterDeletion(_ indices: [Int]) {
+        indices.forEach {
+            self.pagesAspectRatio.remove(at: $0)
+            self.imageGenerationState.remove(at: $0)
+            self.images.remove(at: $0)
+        }
     }
 }

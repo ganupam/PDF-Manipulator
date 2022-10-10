@@ -7,6 +7,8 @@
 
 import Foundation
 import SwiftUI
+import UIKit
+import PDFKit
 
 extension String {
     static var openPDFUserActivityType: String {
@@ -110,5 +112,41 @@ extension FloatingPoint {
                 return initialY + tmp
             }
         }
+    }
+}
+
+extension UISceneSession {
+    var url: URL? {
+        var bookmarkDataIsStale = true
+        guard let bookmarkData = self.userInfo?[.urlBookmarkDataKey] as? Data else { return nil }
+        return try? URL(resolvingBookmarkData: bookmarkData, bookmarkDataIsStale: &bookmarkDataIsStale)
+    }
+    
+    private static var pdfDocKey = "pdfDocKey"
+    var pdfDoc: PDFDocument? {
+        get {
+            guard self.configuration.name == .openedPDFConfigurationName else { return nil }
+            
+            return objc_getAssociatedObject(self, &Self.pdfDocKey) as? PDFDocument
+        }
+        
+        set {
+            guard self.configuration.name == .openedPDFConfigurationName else { return }
+            
+            objc_setAssociatedObject(self, &Self.pdfDocKey, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+    
+    func addPages(_ pages: [PDFPage]) {
+        guard self.configuration.name == .openedPDFConfigurationName, let doc = self.pdfDoc else { return }
+        
+        let pagesModel = PDFPagesModel(pdf: doc, displayScale: 1)
+        pagesModel.insertPages(pages, at: doc.pageCount)
+    }
+}
+
+extension Double {
+    @inline(__always) func dispatchAsyncToMainQueueAfter(_ execute: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + self, execute: execute)
     }
 }
