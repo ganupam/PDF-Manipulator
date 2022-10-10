@@ -66,6 +66,30 @@ extension PDFThumbnailsViewController {
             _pageIDs = State(initialValue: IDs)
         }
         
+        private func dragItemProvider(pageIndex: Int) -> NSItemProvider {
+            let itemProvider = NSItemProvider()
+            itemProvider.suggestedName = self.pdfDoc.documentURL?.lastPathComponent
+            itemProvider.registerItem(forTypeIdentifier: UTType.pdf.identifier) { completionHandler, classType, dict in
+                guard completionHandler != nil, let pdfName = self.pdfDoc.documentURL?.lastPathComponent, let page = self.pdfDoc.page(at: pageIndex)?.dataRepresentation else {
+                    completionHandler?(nil, NSError(domain: "", code: 1))
+                    return
+                }
+                
+                let pdfPath = FileManager.default.temporaryDirectory.appendingPathComponent(pdfName)
+                
+                do {
+                    try page.write(to: pdfPath)
+                }
+                catch {
+                    completionHandler?(nil, NSError(domain: "", code: 1))
+                    return
+                }
+                
+                completionHandler?(pdfPath as NSSecureCoding, nil)
+            }
+            return itemProvider
+        }
+        
         var body: some View {
             GeometryReader { reader in
                 if reader.size.width == 0 {
@@ -75,7 +99,10 @@ extension PDFThumbnailsViewController {
                         LazyVGrid(columns: [GridItem(.flexible(), spacing: Self.horizontalSpacing), GridItem(.flexible())], spacing: Self.verticalSpacing) {
                             ForEach(0 ..< pagesModel.images.count, id: \.self) { pageIndex in
                                 createList(width: (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2, pageIndex: pageIndex, isSelected: $isSelected[pageIndex])
-                                    .overlay(draggingPageID == self.pageIDs[pageIndex] && dragStarted ? Color.white.opacity(0.5) : Color.clear)
+                                    //.overlay(draggingPageID == self.pageIDs[pageIndex] && dragStarted ? Color.white.opacity(0.5) : Color.clear)
+                                    .onDrag {
+                                        return dragItemProvider(pageIndex: pageIndex)
+                                    }
                             }
                         }
                         .ignoresSafeArea(.all, edges: .top)
@@ -156,6 +183,7 @@ extension PDFThumbnailsViewController {
                 return pages
                 
             case .jpeg, .png, .tiff, .gif, .bmp:
+                // UIImage supports above formats.
                 guard let data = try? Data(contentsOf: url), let image = UIImage(data: data), let page = PDFPage(image: image) else { return [] }
                 
                 return [page]
