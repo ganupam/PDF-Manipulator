@@ -120,10 +120,10 @@ extension PDFThumbnailsViewController {
                         }
                         .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ScrollViewDropDelegate(pageIndex:pagesModel.images.count, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
                         .onReceive(NotificationCenter.default.publisher(for: Common.activePageChangedNotification)) { notification in
-                            guard (notification.object as? PDFPagesModel)?.pdf.documentURL == pdfDoc.documentURL, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
+                            guard let pagesModel = notification.object as? PDFPagesModel, pagesModel !== self.pagesModel, pagesModel.pdf.documentURL == pdfDoc.documentURL, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
 
                             withAnimation(.linear(duration: 0.1)) {
-                                //scrollReader.scrollTo(pageIDs[pageIndex])
+                                scrollReader.scrollTo(pageIDs[pageIndex])
                                 activePageIndex = pageIndex
                             }
                         }
@@ -299,6 +299,7 @@ extension PDFThumbnailsViewController {
                     withAnimation(.linear(duration: 0.1)) {
                         if !inSelectionMode {
                             activePageIndex = adjustedPageIndex
+                            NotificationCenter.default.post(name: Common.activePageChangedNotification, object: pagesModel, userInfo: [Common.activePageIndexKey : activePageIndex])
                         } else {
                             isSelected[adjustedPageIndex].toggle()
                         }
@@ -326,12 +327,12 @@ extension PDFThumbnailsViewController {
                 .contextMenu {
                     menu(adjustedPageIndex: adjustedPageIndex)
                 }
-
                 .padding(.horizontal, 5)
                 .padding(.vertical, 5)
                 .background(adjustedPageIndex == activePageIndex ? Color(white: 0.8) : .clear)
                 .cornerRadius(4)
-                
+                .id(pageIDs[adjustedPageIndex])
+
                 Spacer(minLength: 0)
                 
                 Text("\(adjustedPageIndex + 1)")
@@ -344,7 +345,6 @@ extension PDFThumbnailsViewController {
                     .padding(.top, 5)
             }
             .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ThumbnailDropDelegate(pageIndex: pageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
-            //.id(pageIDs[adjustedPageIndex])
         }
         
         private struct Thumbnail: View {

@@ -45,7 +45,8 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         @StateObject private var pagesModel: PDFPagesModel
         @Environment(\.windowScene) private var scene: UIWindowScene?
         @State private var activePageIndex = 0
-
+        @State private var disablePostingActivePageIndexNotification = false
+        
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
 
@@ -60,30 +61,44 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                 if reader.size.width == 0 {
                     EmptyView()
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: Self.verticalSpacing) {
-                            ForEach(0 ..< pdfDoc.pageCount, id: \.self) { pageIndex in
-                                createList(width: (reader.size.width - (Self.gridPadding * 2)), pageIndex: pageIndex)
-                                    .overlay {
-                                        GeometryReader { geometry in
-                                            Color.clear.preference(
-                                                key: ScrollOffsetPreferenceKey.self,
-                                                value: geometry.frame(in: .named("scrollView")).origin
-                                            )
+                    ScrollViewReader { scrollReader in
+                        ScrollView {
+                            LazyVStack(spacing: Self.verticalSpacing) {
+                                ForEach(0 ..< pdfDoc.pageCount, id: \.self) { pageIndex in
+                                    createList(width: (reader.size.width - (Self.gridPadding * 2)), pageIndex: pageIndex)
+                                        .overlay {
+                                            GeometryReader { geometry in
+                                                Color.clear.preference(
+                                                    key: ScrollOffsetPreferenceKey.self,
+                                                    value: geometry.frame(in: .named("scrollView")).origin
+                                                )
+                                            }
                                         }
-                                    }
-                                    .onPreferenceChange(ScrollOffsetPreferenceKey.self) {
-                                        if $0.y > 0 && $0.y < reader.size.height / 2 && activePageIndex != pageIndex {
+                                        .onPreferenceChange(ScrollOffsetPreferenceKey.self) {
+                                            guard !disablePostingActivePageIndexNotification, $0.y > 0 && $0.y < reader.size.height / 2 && activePageIndex != pageIndex else { return }
+
                                             activePageIndex = pageIndex
                                             NotificationCenter.default.post(name: Common.activePageChangedNotification, object: pagesModel, userInfo: [Common.activePageIndexKey : activePageIndex])
                                         }
-                                    }
+                                        .id(pageIndex)
+                                }
+                            }
+                            .padding(Self.gridPadding)
+                        }
+                        .onReceive(NotificationCenter.default.publisher(for: Common.activePageChangedNotification)) { notification in
+                            guard let pagesModel = notification.object as? PDFPagesModel, pagesModel !== self.pagesModel, pagesModel.pdf.documentURL == pdfDoc.documentURL, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
+
+                            disablePostingActivePageIndexNotification = true
+                            withAnimation(.linear(duration: 0.1)) {
+                                scrollReader.scrollTo(pageIndex, anchor: UnitPoint(x: 0, y: -0.2))
+                            }
+                            Timer.scheduledTimer(withTimeInterval: 1, repeats: false) { _ in
+                                disablePostingActivePageIndexNotification = false
                             }
                         }
-                        .padding(Self.gridPadding)
+                        .coordinateSpace(name: "scrollView")
                     }
                     .background(.gray)
-                    .coordinateSpace(name: "scrollView")
                 }
             }
             .navigationTitle("\(pdfDoc.documentURL?.lastPathComponent ?? "")")
