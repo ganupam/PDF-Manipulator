@@ -11,10 +11,10 @@ import PDFKit
 
 final class PDFPagesModel: ObservableObject {
     static let willInsertPages = Notification.Name("willInsertPages")
-    static let pagesIndicesKey = "pagesInsertionIndices"
-    static let pagesWillInsertKey = "pagesWillInsert"
-    
     static let willDeletePages = Notification.Name("willDeletePages")
+    static let didRotatePage = Notification.Name("didRotatePage")
+    static let pagesIndicesKey = "pagesIndices"
+    static let pagesWillInsertKey = "pagesWillInsert"
 
     private let queue = DispatchQueue(label: Bundle.main.bundleIdentifier! + ".pdfgenerator", qos: .userInitiated, attributes: .concurrent)
     
@@ -51,6 +51,7 @@ final class PDFPagesModel: ObservableObject {
         
         NotificationCenter.default.addObserver(self, selector: #selector(willInsertPages), name: Self.willInsertPages, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(willDeletePages), name: Self.willDeletePages, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(didRotatePage), name: Self.didRotatePage, object: nil)
     }
     
     func changeWidth(_ width: Double) {
@@ -150,6 +151,14 @@ final class PDFPagesModel: ObservableObject {
         self.updateInternalStateAfterDeletion(indices)
     }
     
+    @objc private func didRotatePage(_ notification: NSNotification) {
+        guard let otherPDFPagesModel = notification.object as? Self, otherPDFPagesModel !== self, otherPDFPagesModel.pdf.documentURL == self.pdf.documentURL else { return }
+        
+        guard let index = notification.userInfo?[Self.pagesIndicesKey] as? Int else { return }
+        
+        self.updateInternalStateAfterRotation(index)
+    }
+    
     func rotateLeft(_ index: Int) {
         self.rotate(index, angle: -90)
     }
@@ -162,8 +171,9 @@ final class PDFPagesModel: ObservableObject {
         guard let page = self.pdf.page(at: index) else { return }
         
         page.rotation += angle
-        self.imageGenerationState[index] = .notStarted
-        self.images[index] = nil
+        self.updateInternalStateAfterRotation(index)
+        
+        NotificationCenter.default.post(name: Self.didRotatePage, object: self, userInfo: [Self.pagesIndicesKey : index])
     }
     
     func delete(_ index: Int) {
@@ -189,5 +199,14 @@ final class PDFPagesModel: ObservableObject {
             self.imageGenerationState.remove(at: $0)
             self.images.remove(at: $0)
         }
+    }
+    
+    private func updateInternalStateAfterRotation(_ index: Int) {
+        guard let page = self.pdf.page(at: index) else { return }
+        
+        let size = page.bounds(for: .mediaBox).size
+        self.pagesAspectRatio[index] = ((page.rotation % 180) == 0) ? (size.height / size.width) : (size.width / size.height)
+        self.imageGenerationState[index] = .notStarted
+        self.images[index] = nil
     }
 }

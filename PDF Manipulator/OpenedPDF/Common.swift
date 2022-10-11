@@ -7,6 +7,8 @@
 
 import Foundation
 
-let activePageChangedNotification = Notification.Name("activePageChanged")
-let activePageNumberKey = "activePageNumberKey"
+struct Common {
+    static let activePageChangedNotification = Notification.Name("activePageChanged")
+    static let activePageIndexKey = "activePageIndex"
+}
 

@@ -44,6 +44,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
 
         @StateObject private var pagesModel: PDFPagesModel
         @Environment(\.windowScene) private var scene: UIWindowScene?
+        @State private var activePageIndex = 0
 
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
@@ -59,17 +60,30 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                 if reader.size.width == 0 {
                     EmptyView()
                 } else {
-                    ScrollViewWithDidScroll { offset in
-                        
-                    } content: {
+                    ScrollView {
                         LazyVStack(spacing: Self.verticalSpacing) {
                             ForEach(0 ..< pdfDoc.pageCount, id: \.self) { pageIndex in
                                 createList(width: (reader.size.width - (Self.gridPadding * 2)), pageIndex: pageIndex)
+                                    .overlay {
+                                        GeometryReader { geometry in
+                                            Color.clear.preference(
+                                                key: ScrollOffsetPreferenceKey.self,
+                                                value: geometry.frame(in: .named("scrollView")).origin
+                                            )
+                                        }
+                                    }
+                                    .onPreferenceChange(ScrollOffsetPreferenceKey.self) {
+                                        if $0.y > 0 && $0.y < reader.size.height / 2 && activePageIndex != pageIndex {
+                                            activePageIndex = pageIndex
+                                            NotificationCenter.default.post(name: Common.activePageChangedNotification, object: pagesModel, userInfo: [Common.activePageIndexKey : activePageIndex])
+                                        }
+                                    }
                             }
                         }
                         .padding(Self.gridPadding)
                     }
                     .background(.gray)
+                    .coordinateSpace(name: "scrollView")
                 }
             }
             .navigationTitle("\(pdfDoc.documentURL?.lastPathComponent ?? "")")

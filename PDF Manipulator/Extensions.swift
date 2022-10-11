@@ -52,7 +52,7 @@ extension UIAlertController {
     }
 }
 
-private struct ScrollOffsetPreferenceKey: PreferenceKey {
+struct ScrollOffsetPreferenceKey: PreferenceKey {
     static var defaultValue: CGPoint = .zero
     
     static func reduce(value: inout CGPoint, nextValue: () -> CGPoint) {}
