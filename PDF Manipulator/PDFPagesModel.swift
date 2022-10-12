@@ -13,6 +13,7 @@ final class PDFPagesModel: ObservableObject {
     static let willInsertPages = Notification.Name("willInsertPages")
     static let willDeletePages = Notification.Name("willDeletePages")
     static let didRotatePage = Notification.Name("didRotatePage")
+    static let didExchangePages = Notification.Name("didExchangePages")
     static let pagesIndicesKey = "pagesIndices"
     static let pagesWillInsertKey = "pagesWillInsert"
 
@@ -52,6 +53,7 @@ final class PDFPagesModel: ObservableObject {
         NotificationCenter.default.addObserver(self, selector: #selector(willInsertPages), name: Self.willInsertPages, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(willDeletePages), name: Self.willDeletePages, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(didRotatePage), name: Self.didRotatePage, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(didExchangePages), name: Self.didExchangePages, object: nil)
     }
     
     func changeWidth(_ width: Double) {
@@ -158,7 +160,15 @@ final class PDFPagesModel: ObservableObject {
         
         self.updateInternalStateAfterRotation(index)
     }
-    
+
+    @objc private func didExchangePages(_ notification: NSNotification) {
+        guard let otherPDFPagesModel = notification.object as? Self, otherPDFPagesModel !== self, otherPDFPagesModel.pdf.documentURL == self.pdf.documentURL else { return }
+        
+        guard let indices = notification.userInfo?[Self.pagesIndicesKey] as? [Int], indices.count == 2 else { return }
+        
+        self.exchangeImages(index1: indices[0], index2: indices[1])
+    }
+
     func rotateLeft(_ index: Int) {
         self.rotate(index, angle: -90)
     }
@@ -208,5 +218,21 @@ final class PDFPagesModel: ObservableObject {
         self.pagesAspectRatio[index] = ((page.rotation % 180) == 0) ? (size.height / size.width) : (size.width / size.height)
         self.imageGenerationState[index] = .notStarted
         self.images[index] = nil
+    }
+    
+    func exchangeImages(index1: Int, index2: Int) {
+        let aspectRatio = self.pagesAspectRatio[index1]
+        self.pagesAspectRatio[index1] = self.pagesAspectRatio[index2]
+        self.pagesAspectRatio[index2] = aspectRatio
+
+        let img = self.images[index1]
+        self.images[index1] = self.images[index2]
+        self.images[index2] = img
+    }
+    
+    func exchangePages(index1: Int, index2: Int) {
+        self.pdf.exchangePage(at: index1, withPageAt: index2)
+        
+        NotificationCenter.default.post(name: Self.didExchangePages, object: self, userInfo: [Self.pagesIndicesKey : [index1, index2]])
     }
 }

@@ -45,8 +45,8 @@ extension PDFThumbnailsViewController {
         @State private var isSelected: [Bool]
         @StateObject private var pagesModel: PDFPagesModel
         @State private var pageIDs: [UUID]
-        @State private var draggingPageID: UUID?
-        @State private var dragStarted = false
+        @State private var internalDragPageIndex: Int?
+        @State private var currentInternalDropPageIndex: Int?
         @State private var externalDropFakePageIndex: Int? = nil
         @State private var activePageIndex = 0
         @State private var inSelectionMode = false
@@ -118,7 +118,7 @@ extension PDFThumbnailsViewController {
                             .ignoresSafeArea(.all, edges: .top)
                             .padding(Self.gridPadding)
                         }
-                        .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ScrollViewDropDelegate(pageIndex:pagesModel.images.count, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
+                        .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ScrollViewDropDelegate(pagesModel: pagesModel, pageIndex:pagesModel.images.count, internalDragPageIndex: $internalDragPageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
                         .onReceive(NotificationCenter.default.publisher(for: Common.activePageChangedNotification)) { notification in
                             guard let pagesModel = notification.object as? PDFPagesModel, pagesModel !== self.pagesModel, pagesModel.pdf.documentURL == pdfDoc.documentURL, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
 
@@ -322,6 +322,7 @@ extension PDFThumbnailsViewController {
                     }
                 }
                 .onDrag {
+                    internalDragPageIndex = adjustedPageIndex
                     return dragItemProvider(pageIndex: adjustedPageIndex)
                 }
                 .contextMenu {
@@ -344,7 +345,8 @@ extension PDFThumbnailsViewController {
                     .clipShape(Capsule())
                     .padding(.top, 5)
             }
-            .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ThumbnailDropDelegate(pageIndex: pageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
+            .opacity(adjustedPageIndex == currentInternalDropPageIndex ? 0.01 : 1)
+            .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ThumbnailDropDelegate(pagesModel: pagesModel, pageIndex: pageIndex, internalDragPageIndex: $internalDragPageIndex, currentInternalDropPageIndex: $currentInternalDropPageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
         }
         
         private struct Thumbnail: View {
@@ -378,32 +380,72 @@ extension PDFThumbnailsViewController.PDFThumbnails {
     private static let dropAnimationDuration = 0.1
     
     struct ThumbnailDropDelegate: DropDelegate {
+        @ObservedObject var pagesModel: PDFPagesModel
         let pageIndex: Int
+        @Binding var internalDragPageIndex: Int?
+        @Binding var currentInternalDropPageIndex: Int?
         @Binding var externalDropFakePageIndex: Int?
         let dropped: ([NSItemProvider]) -> Void
 
+        func dropEntered(info: DropInfo) {
+            guard let internalDragPageIndex else {
+                return
+            }
+            
+            withAnimation(.linear(duration: PDFThumbnailsViewController.PDFThumbnails.dropAnimationDuration)) {
+                pagesModel.exchangeImages(index1: internalDragPageIndex, index2: pageIndex)
+                currentInternalDropPageIndex = pageIndex
+            }
+        }
+        
         func dropUpdated(info: DropInfo) -> DropProposal? {
+            guard internalDragPageIndex == nil else {
+                return DropProposal(operation: .move)
+            }
+
             withAnimation(.linear(duration: PDFThumbnailsViewController.PDFThumbnails.dropAnimationDuration)) {
                 externalDropFakePageIndex = pageIndex
             }
             return DropProposal(operation: .copy)
         }
         
+        func dropExited(info: DropInfo) {
+            guard let internalDragPageIndex else {
+                return
+            }
+            
+            withAnimation(.linear(duration: PDFThumbnailsViewController.PDFThumbnails.dropAnimationDuration)) {
+                pagesModel.exchangeImages(index1: internalDragPageIndex, index2: pageIndex)
+                currentInternalDropPageIndex = nil
+            }
+        }
+        
         func performDrop(info: DropInfo) -> Bool {
-            let itemProviders = info.itemProviders(for: PDFThumbnailsViewController.supportedDroppedItemProviders)
-            dropped(itemProviders)
+            if let internalDragPageIndex {
+                pagesModel.exchangePages(index1: internalDragPageIndex, index2: pageIndex)
+                currentInternalDropPageIndex = nil
+            } else {
+                let itemProviders = info.itemProviders(for: PDFThumbnailsViewController.supportedDroppedItemProviders)
+                dropped(itemProviders)
+            }
             return true
         }
     }
     
     struct ScrollViewDropDelegate: DropDelegate {
+        @ObservedObject var pagesModel: PDFPagesModel
         let pageIndex: Int
+        @Binding var internalDragPageIndex: Int?
         @Binding var externalDropFakePageIndex: Int?
         let dropped: ([NSItemProvider]) -> Void
         
         func dropUpdated(info: DropInfo) -> DropProposal? {
+            guard internalDragPageIndex == nil else {
+                return DropProposal(operation: .forbidden)
+            }
+
             guard externalDropFakePageIndex == nil else { return DropProposal(operation: .copy) }
-            
+                
             withAnimation(.linear(duration: PDFThumbnailsViewController.PDFThumbnails.dropAnimationDuration)) {
                 externalDropFakePageIndex = pageIndex
             }
