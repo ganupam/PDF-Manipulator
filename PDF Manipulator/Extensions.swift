@@ -150,3 +150,28 @@ extension Double {
         DispatchQueue.main.asyncAfter(deadline: .now() + self, execute: execute)
     }
 }
+
+extension UIApplication {
+    class func openPDFInWindow(_ url: URL, requestingScene: UIWindowScene) {
+        guard url.startAccessingSecurityScopedResource(), let bookmarkData = try? url.bookmarkData(options: .minimalBookmark) else {
+            UIAlertController.show(message: NSLocalizedString("unableToOpen", comment: ""), scene: requestingScene)
+            return
+        }
+        
+        let session = UIApplication.shared.openSessions.first {
+            $0.userInfo?[.urlBookmarkDataKey] as? Data == bookmarkData
+        }
+        
+        let activationOptions = UIWindowScene.ActivationRequestOptions()
+        activationOptions.requestingScene = requestingScene
+
+        let userActivity: NSUserActivity?
+        if session == nil {
+            userActivity = NSUserActivity(activityType: .openPDFUserActivityType)
+            userActivity?.userInfo = [String.urlBookmarkDataKey : bookmarkData]
+        } else {
+            userActivity = nil
+        }
+        UIApplication.shared.requestSceneSessionActivation(session, userActivity: userActivity, options: activationOptions)
+    }
+}

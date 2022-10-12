@@ -156,9 +156,11 @@ final class PDFPagesModel: ObservableObject {
     @objc private func didRotatePage(_ notification: NSNotification) {
         guard let otherPDFPagesModel = notification.object as? Self, otherPDFPagesModel !== self, otherPDFPagesModel.pdf.documentURL == self.pdf.documentURL else { return }
         
-        guard let index = notification.userInfo?[Self.pagesIndicesKey] as? Int else { return }
+        guard let indices = notification.userInfo?[Self.pagesIndicesKey] as? [Int] else { return }
         
-        self.updateInternalStateAfterRotation(index)
+        for index in indices {
+            self.updateInternalStateAfterRotation(index)
+        }
     }
 
     @objc private func didExchangePages(_ notification: NSNotification) {
@@ -169,21 +171,31 @@ final class PDFPagesModel: ObservableObject {
         self.exchangeImages(index1: indices[0], index2: indices[1])
     }
 
-    func rotateLeft(_ index: Int) {
-        self.rotate(index, angle: -90)
+    @inline(__always) func rotateLeft(_ index: Int) {
+        self.rotateLeft([index])
     }
     
-    func rotateRight(_ index: Int) {
-        self.rotate(index, angle: 90)
+    @inline(__always) func rotateRight(_ index: Int) {
+        self.rotateRight([index])
+    }
+
+    @inline(__always) func rotateLeft(_ indices: [Int]) {
+        self.rotate(indices, angle: -90)
     }
     
-    private func rotate(_ index: Int, angle: Int) {
-        guard let page = self.pdf.page(at: index) else { return }
+    @inline(__always) func rotateRight(_ indices: [Int]) {
+        self.rotate(indices, angle: 90)
+    }
+    
+    private func rotate(_ indices: [Int], angle: Int) {
+        for index in indices {
+            guard let page = self.pdf.page(at: index) else { continue }
+            
+            page.rotation += angle
+            self.updateInternalStateAfterRotation(index)
+        }
         
-        page.rotation += angle
-        self.updateInternalStateAfterRotation(index)
-        
-        NotificationCenter.default.post(name: Self.didRotatePage, object: self, userInfo: [Self.pagesIndicesKey : index])
+        NotificationCenter.default.post(name: Self.didRotatePage, object: self, userInfo: [Self.pagesIndicesKey : indices])
     }
     
     func delete(_ index: Int) {

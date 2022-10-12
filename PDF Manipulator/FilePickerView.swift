@@ -10,7 +10,12 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct FilePickerView: UIViewControllerRepresentable {
-    let selectableContentTypes: [UTType]
+    enum OperationMode {
+        case open(selectableContentTypes: [UTType])
+        case export(urlsToExport: [URL])
+    }
+    
+    let operationMode: OperationMode
     let documentPicked: (URL?) -> Void
     
     final class FilePickerViewDelegate: NSObject, UIDocumentPickerDelegate {
@@ -30,7 +35,14 @@ struct FilePickerView: UIViewControllerRepresentable {
     }
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: self.selectableContentTypes)
+        let documentPicker: UIDocumentPickerViewController
+        switch operationMode {
+        case .open(selectableContentTypes: let contentTypes):
+            documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
+            
+        case .export(urlsToExport: let urls):
+            documentPicker = UIDocumentPickerViewController(forExporting: urls, asCopy: true)
+        }
         documentPicker.shouldShowFileExtensions = true
         documentPicker.delegate = context.coordinator
         return documentPicker

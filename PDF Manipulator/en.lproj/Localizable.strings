@@ -12,3 +12,4 @@
 "pageRotateRight" = "Rotate right";
 "pageDelete" = "Delete";
 "addPageToOpenDoc" = "Add to %1$@";
+"errorUnableToCreateFile" = "Unable to create new file";

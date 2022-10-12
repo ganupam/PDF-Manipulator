@@ -26,6 +26,12 @@ final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewCo
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        self.navigationController?.isNavigationBarHidden = true
+    }
 }
 
 extension PDFThumbnailsViewController {
@@ -50,7 +56,8 @@ extension PDFThumbnailsViewController {
         @State private var externalDropFakePageIndex: Int? = nil
         @State private var activePageIndex = 0
         @State private var inSelectionMode = false
-
+        @State private var pdfToExport: URL?
+        
         private static let horizontalSpacing = 10.0
         private static let verticalSpacing = 15.0
         private static let gridPadding = 15.0
@@ -94,6 +101,18 @@ extension PDFThumbnailsViewController {
         }
         
         var body: some View {
+            NavigationView {
+                if #available(iOS 16, *) {
+                    mainBody
+                        .toolbar(inSelectionMode ? .visible : .hidden, for: .bottomBar)
+                        .animation(.linear(duration: 0.1), value: inSelectionMode)
+                } else {
+                    mainBody
+                }
+            }
+        }
+        
+        private var mainBody: some View {
             GeometryReader { reader in
                 if reader.size.width == 0 {
                     EmptyView()
@@ -151,14 +170,90 @@ extension PDFThumbnailsViewController {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
                     Button {
-
+                        inSelectionMode.toggle()
+                    } label: {
+                        Image(systemName: "checkmark.rectangle")
+                    }
+                }
+                
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Button {
+                        guard let tmpPDFUrl = self.createTmpPDF() else { return }
+                        
+                        pdfToExport = tmpPDFUrl
                     } label: {
                         Image(systemName: "doc.badge.plus")
                     }
+                    .disabled(isSelected.firstIndex(of: true) == nil)
+
+                    Button {
+                        pagesModel.rotateLeft(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
+                    } label: {
+                        Image(systemName: "rotate.left")
+                    }
+                    .disabled(isSelected.firstIndex(of: true) == nil)
+
+                    Button {
+                        pagesModel.rotateRight(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
+                    } label: {
+                        Image(systemName: "rotate.right")
+                    }
+                    .disabled(isSelected.firstIndex(of: true) == nil)
+
+                    Button {
+                        pagesModel.delete(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .disabled(isSelected.firstIndex(of: true) == nil)
                 }
             }
+            .sheet(isPresented: .constant(pdfToExport != nil)) {
+                FilePickerView(operationMode: .export(urlsToExport: [pdfToExport!])) { url in
+                    try? FileManager.default.removeItem(at: pdfToExport!)
+                    
+                    pdfToExport = nil
+                    
+                    
+                    guard let url else { return }
+                    
+                    for i in 0 ..< isSelected.count {
+                        isSelected[i] = false
+                    }
+                    withAnimation {
+                        inSelectionMode = false
+                    }
+                    
+                    UIApplication.openPDFInWindow(url, requestingScene: self.scene)
+                }
+            }
+        }
+        
+        private func createTmpPDF() -> URL? {
+            let pdf = PDFDocument()
+            
+            var insertionIndex = 0
+            isSelected.enumerated().forEach {
+                let (index, value) = $0
+                guard value, let page = self.pdfDoc.page(at: index) else {
+                    return
+                }
+                
+                pdf.insert(page, at: insertionIndex)
+                insertionIndex += 1
+            }
+            
+            let filename = scene.session.url!.deletingPathExtension().lastPathComponent
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename).appendingPathExtension("pdf")
+            
+            guard pdf.write(to: url) else {
+                UIAlertController.show(message: NSLocalizedString("errorUnableToCreateFile", comment: ""), defaultButtonTitle: NSLocalizedString("generalOK", comment: ""), scene: scene)
+                return nil
+            }
+            
+            return url
         }
         
         private func handleDropItemProviders(_ itemProviders: [NSItemProvider]) {
@@ -305,18 +400,18 @@ extension PDFThumbnailsViewController {
                         }
                     }
                 })
-                .border(isSelected[adjustedPageIndex] ? .blue : .black, width: isSelected[adjustedPageIndex] ? 2 : 0.5)
+                .border(inSelectionMode && isSelected[adjustedPageIndex] ? .blue : .black, width: inSelectionMode && isSelected[adjustedPageIndex] ? 2 : 0.5)
                 .frame(height: pagesModel.pagesAspectRatio[adjustedPageIndex] * width)
                 .overlay {
-                    if adjustedPageIndex == activePageIndex {
+                    if !inSelectionMode && adjustedPageIndex == activePageIndex {
                         Color.black.opacity(0.2)
                         
                         Menu {
                             menu(adjustedPageIndex: adjustedPageIndex)
                         } label: {
-                            Image(systemName: "ellipsis.circle")
+                            Image(systemName: "ellipsis.circle.fill")
                                 .font(.system(size: 25))
-                                .tint(.black)
+                                .tint(.white)
                         }
                         .frame(width: 44, height: 44)
                     }
@@ -330,7 +425,7 @@ extension PDFThumbnailsViewController {
                 }
                 .padding(.horizontal, 5)
                 .padding(.vertical, 5)
-                .background(adjustedPageIndex == activePageIndex ? Color(white: 0.8) : .clear)
+                .background(!inSelectionMode && adjustedPageIndex == activePageIndex ? Color(white: 0.8) : .clear)
                 .cornerRadius(4)
                 .id(pageIDs[adjustedPageIndex])
 
@@ -341,7 +436,7 @@ extension PDFThumbnailsViewController {
                     .foregroundColor(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(isSelected[adjustedPageIndex] ? Color.blue : Color.black)
+                    .background(inSelectionMode && isSelected[adjustedPageIndex] ? Color.blue : Color.black)
                     .clipShape(Capsule())
                     .padding(.top, 5)
             }

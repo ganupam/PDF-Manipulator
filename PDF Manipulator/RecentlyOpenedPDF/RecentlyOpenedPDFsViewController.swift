@@ -49,29 +49,10 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                     }
                 }
                 .sheet(isPresented: $showingFilePicker) {
-                    FilePickerView(selectableContentTypes: [UTType.pdf]) { url in
+                    FilePickerView(operationMode: .open(selectableContentTypes: [UTType.pdf])) { url in
                         guard let url else { return }
                         
-                        guard url.startAccessingSecurityScopedResource(), let bookmarkData = try? url.bookmarkData(options: .minimalBookmark) else {
-                            UIAlertController.show(message: NSLocalizedString("unableToOpen", comment: ""), scene: scene!)
-                            return
-                        }
-                        
-                        let session = UIApplication.shared.openSessions.first {
-                            $0.userInfo?[.urlBookmarkDataKey] as? Data == bookmarkData
-                        }
-                        
-                        let activationOptions = UIWindowScene.ActivationRequestOptions()
-                        activationOptions.requestingScene = self.scene
-
-                        let userActivity: NSUserActivity?
-                        if session == nil {
-                            userActivity = NSUserActivity(activityType: .openPDFUserActivityType)
-                            userActivity?.userInfo = [String.urlBookmarkDataKey : bookmarkData]
-                        } else {
-                            userActivity = nil
-                        }
-                        UIApplication.shared.requestSceneSessionActivation(session, userActivity: userActivity, options: activationOptions)
+                        UIApplication.openPDFInWindow(url, requestingScene: self.scene!)
                     }
                 }
         }
