@@ -100,6 +100,14 @@ extension PDFThumbnailsViewController {
             return itemProvider
         }
         
+        private var navBarTrailingButton: some View {
+            Button {
+                inSelectionMode.toggle()
+            } label: {
+                Text(NSLocalizedString(inSelectionMode ? "Done" : "Select pages", comment: ""))
+            }
+        }
+        
         var body: some View {
             NavigationView {
                 if #available(iOS 16, *) {
@@ -107,11 +115,7 @@ extension PDFThumbnailsViewController {
                         .toolbar(inSelectionMode ? .visible : .hidden, for: .bottomBar)
                         .toolbar {
                             ToolbarItemGroup(placement: .navigationBarTrailing) {
-                                Button {
-                                    inSelectionMode.toggle()
-                                } label: {
-                                    Image(systemName: "checkmark.rectangle")
-                                }
+                                navBarTrailingButton
                             }
                         }
                         .animation(.linear(duration: 0.1), value: inSelectionMode)
@@ -123,11 +127,7 @@ extension PDFThumbnailsViewController {
             // For iOS 15
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    Button {
-                        inSelectionMode.toggle()
-                    } label: {
-                        Image(systemName: "checkmark.rectangle")
-                    }
+                    navBarTrailingButton
                 }
             }
         }

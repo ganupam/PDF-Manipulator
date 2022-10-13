@@ -36,6 +36,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
 
         var body: some View {
             PDFMainView(pdfDoc: pdfDoc, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
+                .environment(\.windowScene, scene)
         }
     }
     
@@ -46,7 +47,9 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         @Environment(\.windowScene) private var scene: UIWindowScene?
         @State private var activePageIndex = 0
         @State private var disablePostingActivePageIndexNotification = false
-        
+        @State private var hidePrimaryColumn = true
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
 
@@ -102,6 +105,21 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                 }
             }
             .navigationTitle("\(pdfDoc.documentURL?.lastPathComponent ?? "")")
+            .toolbar {
+                ToolbarItemGroup(placement: .navigationBarLeading) {
+                    Button {
+                        UIView.animate(withDuration: 0.4) {
+                            (scene?.keyWindow?.rootViewController as? SplitViewController)?.preferredDisplayMode = hidePrimaryColumn ? .secondaryOnly : .oneBesideSecondary
+                        }
+                        withAnimation {
+                            hidePrimaryColumn.toggle()
+                        }
+                    } label: {
+                        Image(systemName: hidePrimaryColumn ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
+                    }
+                    .opacity(horizontalSizeClass == .compact ? 0 : 1)
+                }
+            }
         }
         
         private func createList(width: Double, pageIndex: Int) -> some View {
