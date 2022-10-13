@@ -12,6 +12,8 @@ import PDFKit
 final class PDFPagesViewController: UIHostingController<PDFPagesViewController.OuterPDFMainView> {
     let pdfDoc: PDFDocument
     let scene: UIWindowScene
+    private lazy var percentDrivenAnimator = UIPercentDrivenInteractiveTransition()
+    private var presentSideBarInteractively = false
     
     init(pdfDoc: PDFDocument, scene: UIWindowScene) {
         self.pdfDoc = pdfDoc
@@ -34,6 +36,39 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         if previousTraitCollection?.horizontalSizeClass == .compact && self.traitCollection.horizontalSizeClass == .regular {
             self.presentedViewController?.dismiss(animated: false)
+        }
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        let screenEdgePanGesture = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(panGestureTriggered))
+        screenEdgePanGesture.edges = .right
+        self.view.addGestureRecognizer(screenEdgePanGesture)
+    }
+    
+    @objc private func panGestureTriggered(_ gesture: UIScreenEdgePanGestureRecognizer) {
+        if gesture.state == .began {
+            self.presentSideBarInteractively = true
+            self.showSidebar()
+        } else if gesture.state == .changed {
+            let pt = gesture.translation(in: gesture.view)
+            let toVCFrame = self.transitionCoordinator?.view(forKey: .to)?.frame ?? .zero
+            let gestureViewWidth = gesture.view!.bounds.width
+            self.percentDrivenAnimator.update(CGFloat.interpolate(initialX: 0, initialY: 0, finalX: -toVCFrame.width, finalY: 1, currentX: pt.x))
+        } else if gesture.state == .cancelled || gesture.state == .ended {
+            let panGestureVelocityX = gesture.velocity(in: gesture.view).x
+            let isSwipe = panGestureVelocityX < -300
+
+            if gesture.state == .cancelled || (!isSwipe && self.percentDrivenAnimator.percentComplete < 0.5) {
+                self.percentDrivenAnimator.cancel()
+                gesture.isEnabled = false
+                gesture.isEnabled = true
+            } else {
+                self.percentDrivenAnimator.finish()
+            }
+            
+            self.presentSideBarInteractively = false
         }
     }
 
@@ -184,6 +219,10 @@ extension PDFPagesViewController: UIViewControllerTransitioningDelegate {
     func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
         self
     }
+    
+    func interactionControllerForPresentation(using animator: UIViewControllerAnimatedTransitioning) -> UIViewControllerInteractiveTransitioning? {
+        self.presentSideBarInteractively ? self.percentDrivenAnimator : nil
+    }
 }
 
 extension PDFPagesViewController: UIViewControllerAnimatedTransitioning {
@@ -216,7 +255,7 @@ extension PDFPagesViewController: UIViewControllerAnimatedTransitioning {
                 frame.origin.x -= frame.width
                 toView.frame = frame
             } completion: { completed in
-                transitionContext.completeTransition(completed)
+                transitionContext.completeTransition(completed && !transitionContext.transitionWasCancelled)
             }
         } else {
             UIView.animate(withDuration: self.transitionDuration(using: transitionContext)) {
