@@ -105,9 +105,29 @@ extension PDFThumbnailsViewController {
                 if #available(iOS 16, *) {
                     mainBody
                         .toolbar(inSelectionMode ? .visible : .hidden, for: .bottomBar)
+                        .toolbar {
+                            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                                Button {
+                                    inSelectionMode.toggle()
+                                } label: {
+                                    Image(systemName: "checkmark.rectangle")
+                                }
+                            }
+                        }
                         .animation(.linear(duration: 0.1), value: inSelectionMode)
                 } else {
                     mainBody
+                        .navigationBarHidden(true)
+                }
+            }
+            // For iOS 15
+            .toolbar {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Button {
+                        inSelectionMode.toggle()
+                    } label: {
+                        Image(systemName: "checkmark.rectangle")
+                    }
                 }
             }
         }
@@ -170,44 +190,38 @@ extension PDFThumbnailsViewController {
                 }
             }
             .toolbar {
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    Button {
-                        inSelectionMode.toggle()
-                    } label: {
-                        Image(systemName: "checkmark.rectangle")
-                    }
-                }
-                
                 ToolbarItemGroup(placement: .bottomBar) {
-                    Button {
-                        guard let tmpPDFUrl = self.createTmpPDF() else { return }
+                    if inSelectionMode {
+                        Button {
+                            guard let tmpPDFUrl = self.createTmpPDF() else { return }
+                            
+                            pdfToExport = tmpPDFUrl
+                        } label: {
+                            Image(systemName: "doc.badge.plus")
+                        }
+                        .disabled(isSelected.firstIndex(of: true) == nil)
                         
-                        pdfToExport = tmpPDFUrl
-                    } label: {
-                        Image(systemName: "doc.badge.plus")
+                        Button {
+                            pagesModel.rotateLeft(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
+                        } label: {
+                            Image(systemName: "rotate.left")
+                        }
+                        .disabled(isSelected.firstIndex(of: true) == nil)
+                        
+                        Button {
+                            pagesModel.rotateRight(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
+                        } label: {
+                            Image(systemName: "rotate.right")
+                        }
+                        .disabled(isSelected.firstIndex(of: true) == nil)
+                        
+                        Button {
+                            pagesModel.delete(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .disabled(isSelected.firstIndex(of: true) == nil)
                     }
-                    .disabled(isSelected.firstIndex(of: true) == nil)
-
-                    Button {
-                        pagesModel.rotateLeft(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
-                    } label: {
-                        Image(systemName: "rotate.left")
-                    }
-                    .disabled(isSelected.firstIndex(of: true) == nil)
-
-                    Button {
-                        pagesModel.rotateRight(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
-                    } label: {
-                        Image(systemName: "rotate.right")
-                    }
-                    .disabled(isSelected.firstIndex(of: true) == nil)
-
-                    Button {
-                        pagesModel.delete(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .disabled(isSelected.firstIndex(of: true) == nil)
                 }
             }
             .sheet(isPresented: .constant(pdfToExport != nil)) {
@@ -519,6 +533,7 @@ extension PDFThumbnailsViewController.PDFThumbnails {
             if let internalDragPageIndex {
                 pagesModel.exchangePages(index1: internalDragPageIndex, index2: pageIndex)
                 currentInternalDropPageIndex = nil
+                self.internalDragPageIndex = nil
             } else {
                 let itemProviders = info.itemProviders(for: PDFThumbnailsViewController.supportedDroppedItemProviders)
                 dropped(itemProviders)
@@ -536,7 +551,7 @@ extension PDFThumbnailsViewController.PDFThumbnails {
         
         func dropUpdated(info: DropInfo) -> DropProposal? {
             guard internalDragPageIndex == nil else {
-                return DropProposal(operation: .forbidden)
+                return DropProposal(operation: .move)
             }
 
             guard externalDropFakePageIndex == nil else { return DropProposal(operation: .copy) }
@@ -549,15 +564,24 @@ extension PDFThumbnailsViewController.PDFThumbnails {
         }
 
         func dropExited(info: DropInfo) {
+            guard internalDragPageIndex == nil else {
+                return
+            }
+            
             withAnimation(.linear(duration: PDFThumbnailsViewController.PDFThumbnails.dropAnimationDuration)) {
                 externalDropFakePageIndex = nil
             }
         }
         
         func performDrop(info: DropInfo) -> Bool {
-            let itemProviders = info.itemProviders(for: PDFThumbnailsViewController.supportedDroppedItemProviders)
-            dropped(itemProviders)
-            return true
+            if internalDragPageIndex != nil {
+                self.internalDragPageIndex = nil
+                return false
+            } else {
+                let itemProviders = info.itemProviders(for: PDFThumbnailsViewController.supportedDroppedItemProviders)
+                dropped(itemProviders)
+                return true
+            }
         }
     }
 
