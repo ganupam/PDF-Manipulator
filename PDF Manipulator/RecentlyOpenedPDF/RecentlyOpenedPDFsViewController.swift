@@ -20,9 +20,6 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
         self.scene = scene
         
         super.init(rootView: RecentlyOpenedPDFsView())        
-//        if let documentFolder = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first {
-//            print("Documents folder: ", documentFolder)
-//        }
     }
     
     override func viewDidLoad() {

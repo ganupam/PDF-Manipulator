@@ -158,20 +158,28 @@ extension UIApplication {
             return
         }
         
-        let session = UIApplication.shared.openSessions.first {
-            $0.userInfo?[.urlBookmarkDataKey] as? Data == bookmarkData
-        }
-        
-        let activationOptions = UIWindowScene.ActivationRequestOptions()
-        activationOptions.requestingScene = requestingScene
-
-        let userActivity: NSUserActivity?
-        if session == nil {
-            userActivity = NSUserActivity(activityType: .openPDFUserActivityType)
-            userActivity?.userInfo = [String.urlBookmarkDataKey : bookmarkData]
+        if UIApplication.shared.supportsMultipleScenes {
+            let session = UIApplication.shared.openSessions.first {
+                $0.userInfo?[.urlBookmarkDataKey] as? Data == bookmarkData
+            }
+            
+            let activationOptions = UIWindowScene.ActivationRequestOptions()
+            activationOptions.requestingScene = requestingScene
+            
+            let userActivity: NSUserActivity?
+            if session == nil {
+                userActivity = NSUserActivity(activityType: .openPDFUserActivityType)
+                userActivity?.userInfo = [String.urlBookmarkDataKey : bookmarkData]
+            } else {
+                userActivity = nil
+            }
+            UIApplication.shared.requestSceneSessionActivation(session, userActivity: userActivity, options: activationOptions)
         } else {
-            userActivity = nil
+            guard let pdf = PDFDocument(url: url), let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+                return
+            }
+            let vc = PDFPagesViewController(pdfDoc: pdf, scene: scene)
+            (scene.keyWindow?.rootViewController as? UINavigationController)?.pushViewController(vc, animated: true)
         }
-        UIApplication.shared.requestSceneSessionActivation(session, userActivity: userActivity, options: activationOptions)
     }
 }
