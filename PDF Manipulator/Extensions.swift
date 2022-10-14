@@ -32,6 +32,10 @@ private struct WindowSceneEnvironmentKey: EnvironmentKey {
     static let defaultValue: UIWindowScene? = nil
 }
 
+private struct ParentViewControllerEnvironmentKey: EnvironmentKey {
+    static let defaultValue: UIViewController = UIViewController()
+}
+
 extension EnvironmentValues {
     var pdfUrl: URL {
         get { self[URLEnvironmentKey.self] }
@@ -41,6 +45,11 @@ extension EnvironmentValues {
     var windowScene: UIWindowScene? {
         get { self[WindowSceneEnvironmentKey.self] }
         set { self[WindowSceneEnvironmentKey.self] = newValue }
+    }
+    
+    var parentViewController: UIViewController {
+        get { self[ParentViewControllerEnvironmentKey.self] }
+        set { self[ParentViewControllerEnvironmentKey.self] = newValue }
     }
 }
 

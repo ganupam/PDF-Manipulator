@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import PDFKit
+import QuickLook
 
 final class PDFPagesViewController: UIHostingController<PDFPagesViewController.OuterPDFMainView> {
     let pdfDoc: PDFDocument
@@ -18,7 +19,9 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         self.pdfDoc = pdfDoc
         self.scene = scene
         
-        super.init(rootView: OuterPDFMainView(pdfDoc: pdfDoc, scene: scene))
+        super.init(rootView: OuterPDFMainView(pdfDoc: pdfDoc, scene: scene, pdfPagesVC: nil))
+        
+        self.rootView = OuterPDFMainView(pdfDoc: pdfDoc, scene: scene, pdfPagesVC: self)        
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -72,10 +75,12 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
     struct OuterPDFMainView: View {
         let pdfDoc: PDFDocument
         let scene: UIWindowScene
-
+        unowned let pdfPagesVC: PDFPagesViewController!
+        
         var body: some View {
             PDFMainView(pdfDoc: pdfDoc, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
                 .environment(\.windowScene, scene)
+                .environment(\.parentViewController, pdfPagesVC)
         }
     }
     
@@ -83,12 +88,13 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         let pdfDoc: PDFDocument
 
         @StateObject private var pagesModel: PDFPagesModel
-        @Environment(\.windowScene) private var scene: UIWindowScene?
+        @Environment(\.windowScene) private var scene
         @State private var activePageIndex = 0
         @State private var disablePostingActivePageIndexNotification = false
         @State private var hidePrimaryColumn = true
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-
+        @Environment(\.parentViewController) private var parentViewController
+        
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
 
@@ -96,6 +102,10 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
             self.pdfDoc = pdfDoc
             let pdfPagesModel = PDFPagesModel(pdf: pdfDoc, displayScale: displayScale)
             _pagesModel = StateObject(wrappedValue: pdfPagesModel)
+        }
+        
+        @inline(__always) private var pdfPagesViewController: PDFPagesViewController {
+            self.parentViewController as! PDFPagesViewController
         }
 
         var body: some View {
@@ -146,32 +156,34 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
             .navigationTitle("\(pdfDoc.documentURL?.lastPathComponent ?? "")")
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarLeading) {
-                    Button {
-                        UIView.animate(withDuration: 0.4) {
-                            (scene?.keyWindow?.rootViewController as? SplitViewController)?.preferredDisplayMode = hidePrimaryColumn ? .secondaryOnly : .oneBesideSecondary
+                    if !(horizontalSizeClass == .compact || UIDevice.current.userInterfaceIdiom == .phone) {
+                        Button {
+                            UIView.animate(withDuration: 0.4) {
+                                (scene?.keyWindow?.rootViewController as? SplitViewController)?.preferredDisplayMode = hidePrimaryColumn ? .secondaryOnly : .oneBesideSecondary
+                            }
+                            withAnimation {
+                                hidePrimaryColumn.toggle()
+                            }
+                        } label: {
+                            Image(systemName: hidePrimaryColumn ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
                         }
-                        withAnimation {
-                            hidePrimaryColumn.toggle()
-                        }
-                    } label: {
-                        Image(systemName: hidePrimaryColumn ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
                     }
-                    .opacity(horizontalSizeClass == .compact || UIDevice.current.userInterfaceIdiom == .phone ? 0 : 1)
                 }
                 
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     Button {
-                        let pdfPagesVC: PDFPagesViewController?
-                        if UIDevice.current.userInterfaceIdiom == .pad {
-                            pdfPagesVC = ((scene?.keyWindow?.rootViewController as? SplitViewController)?.viewControllers[0] as? UINavigationController)?.topViewController as? PDFPagesViewController
-                        } else {
-                            pdfPagesVC = (scene?.keyWindow?.rootViewController as? UINavigationController)?.topViewController as? PDFPagesViewController
-                        }
-                        pdfPagesVC?.showSidebar(presentSideBarInteractively: false)
+                        self.pdfPagesViewController.showQuickLookVC()
                     } label: {
-                        Image(systemName: "sidebar.squares.right")
+                        Image(systemName: "pencil")
                     }
-                    .opacity(horizontalSizeClass == .compact || UIDevice.current.userInterfaceIdiom == .phone ? 1 : 0)
+
+                    if horizontalSizeClass == .compact || UIDevice.current.userInterfaceIdiom == .phone {
+                        Button {
+                            self.pdfPagesViewController.showSidebar(presentSideBarInteractively: false)
+                        } label: {
+                            Image(systemName: "sidebar.squares.right")
+                        }
+                    }
                 }
             }
         }
@@ -205,6 +217,23 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                 }
             }
         }
+    }
+}
+
+// Quick look
+extension PDFPagesViewController: QLPreviewControllerDataSource {
+    func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
+        1
+    }
+    
+    func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+        self.pdfDoc.documentURL! as NSURL
+    }
+    
+    func showQuickLookVC() {
+        let qlVC = QLPreviewController()
+        qlVC.dataSource = self
+        self.present(qlVC, animated: true)
     }
 }
 
