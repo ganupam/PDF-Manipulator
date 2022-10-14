@@ -126,9 +126,15 @@ extension FloatingPoint {
 
 extension UISceneSession {
     var url: URL? {
-        var bookmarkDataIsStale = true
-        guard let bookmarkData = self.userInfo?[.urlBookmarkDataKey] as? Data else { return nil }
-        return try? URL(resolvingBookmarkData: bookmarkData, bookmarkDataIsStale: &bookmarkDataIsStale)
+        var bookmarkDataIsStale = false
+
+        guard let bookmarkData = self.userInfo?[.urlBookmarkDataKey] as? Data, let url = try? URL(resolvingBookmarkData: bookmarkData, bookmarkDataIsStale: &bookmarkDataIsStale) else { return nil }
+        
+        if bookmarkDataIsStale, let newBookmarkData = try? url.bookmarkData(options: .minimalBookmark) {
+            self.userInfo?[.urlBookmarkDataKey] = newBookmarkData
+        }
+        
+        return url
     }
     
     private static var pdfDocKey = "pdfDocKey"
@@ -185,6 +191,7 @@ extension UIApplication {
             UIApplication.shared.requestSceneSessionActivation(session, userActivity: userActivity, options: activationOptions)
         } else {
             guard let pdf = PDFDocument(url: url), let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+                url.stopAccessingSecurityScopedResource()
                 return
             }
             let vc = PDFPagesViewController(pdfDoc: pdf, scene: scene)

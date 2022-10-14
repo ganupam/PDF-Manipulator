@@ -34,8 +34,7 @@ final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
         // This occurs shortly after the scene enters the background, or when its session is discarded.
         // Release any resources associated with this scene that can be re-created the next time the scene connects.
         // The scene may re-connect later, as its session was not necessarily discarded (see `application:didDiscardSceneSessions` instead).
-        var bookmarkDataIsStale = true
-        if let bookmarkData = scene.session.userInfo?[.urlBookmarkDataKey] as? Data, let url = try? URL(resolvingBookmarkData: bookmarkData, bookmarkDataIsStale: &bookmarkDataIsStale) {
+        if let url = scene.session.url {
             url.stopAccessingSecurityScopedResource()
         }
     }

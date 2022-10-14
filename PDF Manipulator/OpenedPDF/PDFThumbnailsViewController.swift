@@ -167,7 +167,7 @@ extension PDFThumbnailsViewController {
                             .ignoresSafeArea(.all, edges: .top)
                             .padding(Self.gridPadding)
                         }
-                        .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ScrollViewDropDelegate(pagesModel: pagesModel, pageIndex:pagesModel.images.count, internalDragPageIndex: $internalDragPageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
+                        .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ScrollViewDropDelegate(pageIndex:pagesModel.images.count, internalDragPageIndex: $internalDragPageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
                         .onReceive(NotificationCenter.default.publisher(for: Common.activePageChangedNotification)) { notification in
                             guard let pagesModel = notification.object as? PDFPagesModel, pagesModel !== self.pagesModel, pagesModel.pdf.documentURL == pdfDoc.documentURL, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
 
@@ -553,7 +553,6 @@ extension PDFThumbnailsViewController.PDFThumbnails {
     }
     
     struct ScrollViewDropDelegate: DropDelegate {
-        @ObservedObject var pagesModel: PDFPagesModel
         let pageIndex: Int
         @Binding var internalDragPageIndex: Int?
         @Binding var externalDropFakePageIndex: Int?
