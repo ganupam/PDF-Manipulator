@@ -12,8 +12,7 @@ import PDFKit
 final class PDFPagesViewController: UIHostingController<PDFPagesViewController.OuterPDFMainView> {
     let pdfDoc: PDFDocument
     let scene: UIWindowScene
-    private lazy var percentDrivenAnimator = UIPercentDrivenInteractiveTransition()
-    private var presentSideBarInteractively = false
+    private var presentationManager: PresentationManager?
     
     init(pdfDoc: PDFDocument, scene: UIWindowScene) {
         self.pdfDoc = pdfDoc
@@ -26,15 +25,16 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         fatalError("init(coder:) has not been implemented")
     }
     
-    fileprivate func showSidebar() {
+    fileprivate func showSidebar(presentSideBarInteractively: Bool) {
         let thumbnailVC = PDFThumbnailsViewController(pdfDoc: pdfDoc, scene: scene)
         thumbnailVC.modalPresentationStyle = .custom
-        thumbnailVC.transitioningDelegate = self
+        self.presentationManager = PresentationManager(presentInteractively: presentSideBarInteractively)
+        thumbnailVC.transitioningDelegate = self.presentationManager
         self.present(thumbnailVC, animated: true)
     }
     
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        if previousTraitCollection?.horizontalSizeClass == .compact && self.traitCollection.horizontalSizeClass == .regular {
+        if previousTraitCollection?.horizontalSizeClass == .compact && self.traitCollection.horizontalSizeClass == .regular && UIDevice.current.userInterfaceIdiom == .pad {
             self.presentedViewController?.dismiss(animated: false)
         }
     }
@@ -44,31 +44,28 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         
         let screenEdgePanGesture = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(panGestureTriggered))
         screenEdgePanGesture.edges = .right
+        screenEdgePanGesture.delegate = self
         self.view.addGestureRecognizer(screenEdgePanGesture)
     }
     
     @objc private func panGestureTriggered(_ gesture: UIScreenEdgePanGestureRecognizer) {
         if gesture.state == .began {
-            self.presentSideBarInteractively = true
-            self.showSidebar()
+            self.showSidebar(presentSideBarInteractively: true)
         } else if gesture.state == .changed {
             let pt = gesture.translation(in: gesture.view)
             let toVCFrame = self.transitionCoordinator?.view(forKey: .to)?.frame ?? .zero
-            let gestureViewWidth = gesture.view!.bounds.width
-            self.percentDrivenAnimator.update(CGFloat.interpolate(initialX: 0, initialY: 0, finalX: -toVCFrame.width, finalY: 1, currentX: pt.x))
+            self.presentationManager?.percentDrivenAnimator.update(CGFloat.interpolate(initialX: 0, initialY: 0, finalX: -toVCFrame.width, finalY: 1, currentX: pt.x))
         } else if gesture.state == .cancelled || gesture.state == .ended {
             let panGestureVelocityX = gesture.velocity(in: gesture.view).x
             let isSwipe = panGestureVelocityX < -300
 
-            if gesture.state == .cancelled || (!isSwipe && self.percentDrivenAnimator.percentComplete < 0.5) {
-                self.percentDrivenAnimator.cancel()
+            if gesture.state == .cancelled || (!isSwipe && (self.presentationManager?.percentDrivenAnimator.percentComplete ?? 0) < 0.5) {
+                self.presentationManager?.percentDrivenAnimator.cancel()
                 gesture.isEnabled = false
                 gesture.isEnabled = true
             } else {
-                self.percentDrivenAnimator.finish()
+                self.presentationManager?.percentDrivenAnimator.finish()
             }
-            
-            self.presentSideBarInteractively = false
         }
     }
 
@@ -170,7 +167,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                         } else {
                             pdfPagesVC = (scene?.keyWindow?.rootViewController as? UINavigationController)?.topViewController as? PDFPagesViewController
                         }
-                        pdfPagesVC?.showSidebar()
+                        pdfPagesVC?.showSidebar(presentSideBarInteractively: false)
                     } label: {
                         Image(systemName: "sidebar.squares.right")
                     }
@@ -211,66 +208,121 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
     }
 }
 
-extension PDFPagesViewController: UIViewControllerTransitioningDelegate {
-    func animationController(forPresented presented: UIViewController, presenting: UIViewController, source: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-        self
-    }
-    
-    func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-        self
-    }
-    
-    func interactionControllerForPresentation(using animator: UIViewControllerAnimatedTransitioning) -> UIViewControllerInteractiveTransitioning? {
-        self.presentSideBarInteractively ? self.percentDrivenAnimator : nil
-    }
-}
+extension PDFPagesViewController {
+    private final class PresentationManager: NSObject, UIViewControllerTransitioningDelegate, UIViewControllerAnimatedTransitioning {
+        private final class PresentationController: UIPresentationController {
+            private lazy var backgroundCancelButton = {
+                let backgroundCancelButton = UIButton(frame: .zero)
+                backgroundCancelButton.addTarget(self, action: #selector(cancelButtonTapped), for: .touchUpInside)
+                backgroundCancelButton.autoresizingMask = [.flexibleHeight, .flexibleWidth]
+                backgroundCancelButton.backgroundColor = .black
+                return backgroundCancelButton
+            }()
 
-extension PDFPagesViewController: UIViewControllerAnimatedTransitioning {
-    func transitionDuration(using transitionContext: UIViewControllerContextTransitioning?) -> TimeInterval {
-        0.4
-    }
-    
-    func animateTransition(using transitionContext: UIViewControllerContextTransitioning) {
-        let toVC = transitionContext.viewController(forKey: .to)!
-        if toVC.isBeingPresented == true {
-            let bounds = transitionContext.containerView.bounds
-            let backgroundCancelButton = UIButton(frame: bounds)
-            backgroundCancelButton.addTarget(self, action: #selector(cancelButtonTapped), for: .touchUpInside)
-            backgroundCancelButton.autoresizingMask = [.flexibleHeight, .flexibleWidth]
-            backgroundCancelButton.backgroundColor = .black
-            backgroundCancelButton.alpha = 0
-            backgroundCancelButton.tag = 1
-            transitionContext.containerView.addSubview(backgroundCancelButton)
-            
-            var frame = transitionContext.finalFrame(for: toVC)
-            frame.origin.x = frame.width
-            frame.size.width -= 100
-            let toView = transitionContext.view(forKey: .to)!
-            toView.frame = frame
-            toView.autoresizingMask = [.flexibleHeight, .flexibleWidth]
-            transitionContext.containerView.addSubview(toView)
-            
-            UIView.animate(withDuration: self.transitionDuration(using: transitionContext)) {
-                backgroundCancelButton.alpha = 0.7
-                frame.origin.x -= frame.width
-                toView.frame = frame
-            } completion: { completed in
-                transitionContext.completeTransition(completed && !transitionContext.transitionWasCancelled)
+            override var frameOfPresentedViewInContainerView: CGRect {
+                guard let containerView = self.containerView else { return .zero }
+                
+                let containerBounds = containerView.bounds
+                let width = containerBounds.width * 0.66
+                return CGRect(x: containerBounds.width - width, y: 0, width: width, height: containerBounds.height)
             }
-        } else {
-            UIView.animate(withDuration: self.transitionDuration(using: transitionContext)) {
-                let fromVC = transitionContext.viewController(forKey: .from)!
-                var frame = transitionContext.initialFrame(for: fromVC)
-                transitionContext.containerView.viewWithTag(1)?.alpha = 0
-                frame.origin.x += frame.width
-                transitionContext.view(forKey: .from)?.frame = frame
-            } completion: { completed in
-                transitionContext.completeTransition(completed)
+            
+            override func containerViewDidLayoutSubviews() {
+                super.containerViewDidLayoutSubviews()
+
+                self.presentedViewController.view.frame = self.frameOfPresentedViewInContainerView
+            }
+            
+            override func presentationTransitionWillBegin() {
+                super.presentationTransitionWillBegin()
+                
+                guard let containerView = self.containerView else { return }
+
+                containerView.addSubview(self.backgroundCancelButton)
+                self.backgroundCancelButton.frame = containerView.bounds
+
+                self.backgroundCancelButton.alpha = 0
+                self.presentedViewController.transitionCoordinator?.animate { context in
+                    UIView.animate(withDuration: context.transitionDuration, delay: 0) {
+                        self.backgroundCancelButton.alpha = 0.7
+                    }
+                }
+            }
+            
+            override func dismissalTransitionWillBegin() {
+                super.dismissalTransitionWillBegin()
+                
+                self.presentedViewController.transitionCoordinator?.animate { context in
+                    UIView.animate(withDuration: context.transitionDuration, delay: 0) {
+                        self.backgroundCancelButton.alpha = 0
+                    }
+                }
+            }
+            
+            @objc private func cancelButtonTapped() {
+                self.presentedViewController.dismiss(animated: true)
+            }
+        }
+        
+        private(set) lazy var percentDrivenAnimator = UIPercentDrivenInteractiveTransition()
+        let presentInteractively: Bool
+        unowned private var presentedViewController: UIViewController!
+        
+        init(presentInteractively: Bool) {
+            self.presentInteractively = presentInteractively
+        }
+
+        func animationController(forPresented presented: UIViewController, presenting: UIViewController, source: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+            self.presentedViewController = presented
+            return self
+        }
+        
+        func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+            self
+        }
+        
+        func interactionControllerForPresentation(using animator: UIViewControllerAnimatedTransitioning) -> UIViewControllerInteractiveTransitioning? {
+            self.presentInteractively ? self.percentDrivenAnimator : nil
+        }
+        
+        func presentationController(forPresented presented: UIViewController, presenting: UIViewController?, source: UIViewController) -> UIPresentationController? {
+            PresentationController(presentedViewController: presented, presenting: presenting)
+        }
+        
+        func transitionDuration(using transitionContext: UIViewControllerContextTransitioning?) -> TimeInterval {
+            0.35
+        }
+        
+        func animateTransition(using transitionContext: UIViewControllerContextTransitioning) {
+            let toVC = transitionContext.viewController(forKey: .to)!
+            if toVC.isBeingPresented == true {
+                var frame = transitionContext.finalFrame(for: toVC)
+                frame.origin.x = transitionContext.containerView.bounds.width
+                let toView = transitionContext.view(forKey: .to)!
+                toView.frame = frame
+                transitionContext.containerView.addSubview(toView)
+                
+                UIView.animate(withDuration: self.transitionDuration(using: transitionContext), delay: 0, options: self.presentInteractively ? .curveLinear : .curveEaseInOut) {
+                    toView.frame = transitionContext.finalFrame(for: toVC)
+                } completion: { completed in
+                    transitionContext.completeTransition(completed && !transitionContext.transitionWasCancelled)
+                }
+            } else {
+                UIView.animate(withDuration: self.transitionDuration(using: transitionContext), delay: 0, options: self.presentInteractively ? .curveLinear : .curveEaseInOut) {
+                    let fromVC = transitionContext.viewController(forKey: .from)!
+                    var frame = transitionContext.initialFrame(for: fromVC)
+                    frame.origin.x += frame.width
+                    transitionContext.view(forKey: .from)?.frame = frame
+                } completion: { completed in
+                    transitionContext.completeTransition(completed && !transitionContext.transitionWasCancelled)
+                }
             }
         }
     }
-    
-    @objc private func cancelButtonTapped() {
-        self.presentedViewController?.dismiss(animated: true)
+}
+
+extension PDFPagesViewController: UIGestureRecognizerDelegate {
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        self.traitCollection.horizontalSizeClass  == .compact || UIDevice.current.userInterfaceIdiom == .phone
     }
 }

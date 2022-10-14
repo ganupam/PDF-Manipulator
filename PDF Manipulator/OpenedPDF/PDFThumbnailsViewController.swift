@@ -26,12 +26,6 @@ final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewCo
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        self.navigationController?.isNavigationBarHidden = true
-    }
 }
 
 extension PDFThumbnailsViewController {
@@ -99,7 +93,24 @@ extension PDFThumbnailsViewController {
             }
             return itemProvider
         }
-        
+
+        @ViewBuilder
+        private var navBarLeadingButton: some View {
+            if scene.keyWindow?.traitCollection.horizontalSizeClass == .compact || UIDevice.current.userInterfaceIdiom == .phone {
+                Button {
+                    let pdfThumbnailVC: PDFThumbnailsViewController
+                    if UIDevice.current.userInterfaceIdiom == .pad {
+                        pdfThumbnailVC = (scene.keyWindow?.rootViewController as? SplitViewController)?.viewControllers[0].presentedViewController as! PDFThumbnailsViewController
+                    } else {
+                        pdfThumbnailVC = scene.keyWindow?.rootViewController?.presentedViewController as! PDFThumbnailsViewController
+                    }
+                    pdfThumbnailVC.dismiss(animated: true)
+                } label: {
+                    Image(systemName: "xmark")
+                }
+            }
+        }
+
         private var navBarTrailingButton: some View {
             Button {
                 inSelectionMode.toggle()
@@ -114,6 +125,10 @@ extension PDFThumbnailsViewController {
                     mainBody
                         .toolbar(inSelectionMode ? .visible : .hidden, for: .bottomBar)
                         .toolbar {
+                            ToolbarItemGroup(placement: .navigationBarLeading) {
+                                navBarLeadingButton
+                            }
+
                             ToolbarItemGroup(placement: .navigationBarTrailing) {
                                 navBarTrailingButton
                             }
@@ -121,13 +136,8 @@ extension PDFThumbnailsViewController {
                         .animation(.linear(duration: 0.1), value: inSelectionMode)
                 } else {
                     mainBody
-                        .navigationBarHidden(true)
-                }
-            }
-            // For iOS 15
-            .toolbar {
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    navBarTrailingButton
+                        .navigationBarTitleDisplayMode(.inline)
+                        .navigationBarItems(leading:navBarLeadingButton, trailing: navBarTrailingButton)
                 }
             }
         }
@@ -450,7 +460,7 @@ extension PDFThumbnailsViewController {
                     .foregroundColor(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(inSelectionMode && isSelected[adjustedPageIndex] ? Color.blue : Color.black)
+                    .background(inSelectionMode && isSelected[adjustedPageIndex] ? Color.blue : Color(white: 0.3))
                     .clipShape(Capsule())
                     .padding(.top, 5)
             }
