@@ -24,6 +24,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		41907E8828FCC8A50052ED9E /* To Do.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "To Do.txt"; sourceTree = "<group>"; };
 		41FBA7C828ED4F84009470FD /* RecentlyOpenedPDFsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentlyOpenedPDFsViewController.swift; sourceTree = "<group>"; };
 		6E1DFEFA28EF84140096F309 /* Common.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Common.swift; sourceTree = "<group>"; };
 		6E5B04BB28D0996D00D5F25A /* FilePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePickerView.swift; sourceTree = "<group>"; };
@@ -53,6 +54,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		41907E8A28FCCAD10052ED9E /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				6E84D98228EB8D300034C170 /* PDFPagesModel.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 		6E84D98D28EE07260034C170 /* RecentlyOpenedPDF */ = {
 			isa = PBXGroup;
 			children = (
@@ -93,14 +102,15 @@
 		6EB7977B28B8B5C9002120E1 /* PDF Manipulator */ = {
 			isa = PBXGroup;
 			children = (
+				41907E8828FCC8A50052ED9E /* To Do.txt */,
 				6EB7977C28B8B5C9002120E1 /* AppDelegate.swift */,
+				41907E8A28FCCAD10052ED9E /* Models */,
 				6E84D98E28EE074A0034C170 /* OpenedPDF */,
 				6E84D98D28EE07260034C170 /* RecentlyOpenedPDF */,
 				6EB7978528B8B5CC002120E1 /* Assets.xcassets */,
 				6EB7978728B8B5CC002120E1 /* LaunchScreen.storyboard */,
 				6EB7978A28B8B5CC002120E1 /* Info.plist */,
 				6E5B04BD28D099BC00D5F25A /* Extensions.swift */,
-				6E84D98228EB8D300034C170 /* PDFPagesModel.swift */,
 				6E5B04BB28D0996D00D5F25A /* FilePickerView.swift */,
 				6E84D99328EE342F0034C170 /* Localizable.strings */,
 			);

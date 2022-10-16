@@ -24,10 +24,6 @@ extension String {
     }
 }
 
-private struct URLEnvironmentKey: EnvironmentKey {
-    static let defaultValue: URL = URL(string: "www.apple.com")!
-}
-
 private struct WindowSceneEnvironmentKey: EnvironmentKey {
     static let defaultValue: UIWindowScene? = nil
 }
@@ -37,11 +33,6 @@ private struct ParentViewControllerEnvironmentKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    var pdfUrl: URL {
-        get { self[URLEnvironmentKey.self] }
-        set { self[URLEnvironmentKey.self] = newValue }
-    }
-    
     var windowScene: UIWindowScene? {
         get { self[WindowSceneEnvironmentKey.self] }
         set { self[WindowSceneEnvironmentKey.self] = newValue }
@@ -67,6 +58,7 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
     static func reduce(value: inout CGPoint, nextValue: () -> CGPoint) {}
 }
 
+/*
 struct ScrollViewWithDidScroll<Content: View>: View {
     let axes: Axis.Set
     let showsIndicators: Bool
@@ -98,7 +90,7 @@ struct ScrollViewWithDidScroll<Content: View>: View {
         .coordinateSpace(name: "scrollView")
         .onPreferenceChange(ScrollOffsetPreferenceKey.self, perform: offsetChanged)
     }
-}
+}*/
 
 extension FloatingPoint {
     @inline(__always) static func interpolate(initialX: Self, initialY: Self, finalX: Self, finalY: Self, currentX: Self) -> Self {
