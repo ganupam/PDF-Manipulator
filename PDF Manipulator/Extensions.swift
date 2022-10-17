@@ -181,13 +181,27 @@ extension UIApplication {
                 userActivity = nil
             }
             UIApplication.shared.requestSceneSessionActivation(session, userActivity: userActivity, options: activationOptions)
+            RecentlyOpenFilesManager.sharedInstance.addURL(url)
         } else {
             guard let pdf = PDFDocument(url: url), let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
                 url.stopAccessingSecurityScopedResource()
                 return
             }
+            
             let vc = PDFPagesViewController(pdfDoc: pdf, scene: scene)
             (scene.keyWindow?.rootViewController as? UINavigationController)?.pushViewController(vc, animated: true)
+            RecentlyOpenFilesManager.sharedInstance.addURL(url)
+        }
+    }
+}
+
+extension URL {
+    static var documentsFolder: URL {
+        if #available(iOS 16.0, *) {
+            return URL.documentsDirectory
+        } else {
+            let docPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first!
+            return URL(fileURLWithPath: docPath)
         }
     }
 }
