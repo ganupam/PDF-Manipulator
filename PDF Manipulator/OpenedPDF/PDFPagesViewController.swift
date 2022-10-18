@@ -49,6 +49,14 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         screenEdgePanGesture.edges = .right
         screenEdgePanGesture.delegate = self
         self.view.addGestureRecognizer(screenEdgePanGesture)
+        
+        // Always show the navigation bar not just when scrolled.
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundEffect = UIBlurEffect(style: .systemThickMaterial)
+        appearance.shadowColor = UIColor(white: 180.0/255, alpha: 1)
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
     }
     
     @objc private func panGestureTriggered(_ gesture: UIScreenEdgePanGestureRecognizer) {

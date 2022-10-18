@@ -28,12 +28,21 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
         super.viewDidLoad()
         
         self.rootView = RecentlyOpenedPDFsView(scene: self.scene)
+        
+        // Always show the navigation bar not just when scrolled.
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundEffect = UIBlurEffect(style: .systemMaterial)
+        appearance.shadowColor = UIColor(white: 180.0/255, alpha: 1)
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
     }
     
     struct RecentlyOpenedPDFsView: View {
         private static let horizontalSpacing = 15.0
         private static let minimumColumnWidth = 110.0
         private(set) var scene: UIWindowScene? = nil
+        private static let thumbnailHeight = 110.0
         
         @State private var showingFilePicker = false
         @ObservedObject private var recentlyOpenFilesManager = RecentlyOpenFilesManager.sharedInstance
@@ -43,18 +52,20 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
             GeometryReader { reader in
                 ScrollView {
                     HStack {
-                        Text("Recently used files")
+                        Text("recentlyOpenedFiles")
                             .font(.title2.bold())
+                            .padding(.horizontal, 16)
                         
                         Spacer()
                     }
-                    .padding(.bottom, 5)
+                    .padding(.top, 10)
                     
                     LazyVGrid(columns: gridItems(containerWidth: reader.size.width), spacing: 25) {
                         ForEach(recentlyOpenFilesManager.urls, id: \.self) { url in
                             VStack(spacing: 0) {
                                 Image(uiImage: thumbnails[url] ?? UIImage())
                                     .border(.gray, width: 0.5)
+                                    .frame(height: Self.thumbnailHeight)
                                 
                                 Text(verbatim: "\(url.lastPathComponent)")
                                     .lineLimit(2)
@@ -75,15 +86,15 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                             }
                         }
                     }
+                    .padding(Self.horizontalSpacing)
                 }
+                .animation(.linear(duration: 0.2), value: recentlyOpenFilesManager.urls)
+                .navigationTitle("PDF Manipulator")
                 .onReceive(NotificationCenter.default.publisher(for: RecentlyOpenFilesManager.URLAddedNotification)) { notification in
                     guard let url = notification.userInfo?[RecentlyOpenFilesManager.urlUserInfoKey] as? URL else { return }
                     
                     self.generateThumbnails(urls: [url])
                 }
-                .animation(.linear(duration: 0.2), value: recentlyOpenFilesManager.urls)
-                .padding(Self.horizontalSpacing)
-                .navigationTitle("PDF Manipulator")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button {
@@ -143,8 +154,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
             }
         }
         
-        private func generateThumbnails(urls: [URL]) {
-            let size = CGSize(width: .greatestFiniteMagnitude, height: 110.0)
+        private func generateThumbnails(urls: [URL], size: CGSize = CGSize(width: .greatestFiniteMagnitude, height: Self.thumbnailHeight)) {
             urls.forEach { url in
                 let request = QLThumbnailGenerator.Request(fileAt: url,
                                                            size: size,
@@ -155,7 +165,12 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                     DispatchQueue.main.async {
                         guard let thumbnail, error == nil else { return }
                         
-                        thumbnails[url] = thumbnail.uiImage
+                        let image = thumbnail.uiImage
+                        if image.size.width > 110 {
+                            generateThumbnails(urls: [url], size: CGSize(width: 110.0, height: .greatestFiniteMagnitude))
+                        } else {
+                            thumbnails[url] = image
+                        }
                     }
                 }
             }
