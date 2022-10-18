@@ -250,7 +250,7 @@ extension PDFThumbnailsViewController {
                         inSelectionMode = false
                     }
                     
-                    UIApplication.openPDFInWindow(url, requestingScene: self.scene)
+                    UIApplication.openPDF(url, requestingScene: self.scene)
                 }
             }
         }

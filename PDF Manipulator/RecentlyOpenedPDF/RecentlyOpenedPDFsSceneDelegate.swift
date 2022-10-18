@@ -53,7 +53,7 @@ final class RecentlyOpenedPDFsSceneDelegate: UIResponder, UIWindowSceneDelegate 
     
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         for URLContext in URLContexts {
-            UIApplication.openPDFInWindow(URLContext.url, requestingScene: scene as! UIWindowScene)
+            UIApplication.openPDF(URLContext.url, requestingScene: scene as! UIWindowScene)
         }
     }
 }

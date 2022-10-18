@@ -159,7 +159,7 @@ extension Double {
 }
 
 extension UIApplication {
-    class func openPDFInWindow(_ url: URL, requestingScene: UIWindowScene) {
+    class func openPDF(_ url: URL, requestingScene: UIWindowScene) {
         guard url.startAccessingSecurityScopedResource(), let bookmarkData = try? url.bookmarkData(options: .minimalBookmark) else {
             UIAlertController.show(message: NSLocalizedString("unableToOpen", comment: ""), scene: requestingScene)
             return
