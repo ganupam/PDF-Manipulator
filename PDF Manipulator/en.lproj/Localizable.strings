@@ -16,3 +16,6 @@
 "selectPages" = "Select Pages";
 "generalDone" = "Done";
 "recentlyOpenedFiles" = "Recently opened files";
+"generalCancel" = "Cancel";
+"generalDelete" = "Delete";
+"deletePagesConfirmationTitle" = "Do you want to delete %1$d page(s)?";

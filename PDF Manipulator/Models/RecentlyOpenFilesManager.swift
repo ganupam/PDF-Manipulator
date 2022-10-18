@@ -37,6 +37,11 @@ final class RecentlyOpenFilesManager: NSObject, ObservableObject {
 
         self.urls.insert(url, at: 0)
 
+        // No more than 25 items
+        for i in stride(from: self.urls.count - 1, through: 25, by: -1) {
+            self.urls.remove(at: i)
+        }
+        
         NotificationCenter.default.post(name: Self.URLAddedNotification, object: nil, userInfo: [Self.urlUserInfoKey : url])
         
         self.save()

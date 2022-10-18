@@ -226,9 +226,11 @@ extension PDFThumbnailsViewController {
                         .disabled(isSelected.firstIndex(of: true) == nil)
                         
                         Button {
-                            pagesModel.delete(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
+                            self.deletePagesWithConfirmation(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil })
                         } label: {
                             Image(systemName: "trash")
+                                .renderingMode(.template)
+                                .tint(.red)
                         }
                         .disabled(isSelected.firstIndex(of: true) == nil)
                     }
@@ -253,6 +255,19 @@ extension PDFThumbnailsViewController {
                     UIApplication.openPDF(url, requestingScene: self.scene)
                 }
             }
+        }
+        
+        private func deletePagesWithConfirmation(_ indices: [Int]) {
+            let alert = UIAlertController(title: nil, message: String(format: NSLocalizedString("deletePagesConfirmationTitle", comment: ""), indices.count), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: NSLocalizedString("generalDelete", comment: ""), style: .destructive) { _ in
+                pagesModel.delete(indices)
+            })
+            alert.addAction(UIAlertAction(title: NSLocalizedString("generalCancel", comment: ""), style: .cancel))
+            var VC = scene.keyWindow?.rootViewController
+            if let presented = VC?.presentedViewController {
+                VC = presented
+            }
+            VC?.present(alert, animated: true)
         }
         
         private func createTmpPDF() -> URL? {
@@ -391,7 +406,7 @@ extension PDFThumbnailsViewController {
                 
                 Section {
                     Button(role: .destructive) {
-                        pagesModel.delete(adjustedPageIndex)
+                        self.deletePagesWithConfirmation([adjustedPageIndex])
                     } label: {
                         Label {
                             Text("pageDelete")

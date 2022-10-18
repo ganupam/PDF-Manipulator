@@ -86,7 +86,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                             }
                         }
                     }
-                    .padding(Self.horizontalSpacing)
+                    .padding([.horizontal, .bottom], Self.horizontalSpacing)
                 }
                 .animation(.linear(duration: 0.2), value: recentlyOpenFilesManager.urls)
                 .navigationTitle("PDF Manipulator")
@@ -118,19 +118,23 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
         }
         
         private func size(of url: URL) -> String {
-            var unit = "byte"
+            var unit = "bytes"
             var size = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int ?? 0
-            if size >= 1024 {
-                size /= 1024
-                unit = "KB"
-            }
-            if size >= 1024 {
-                size /= 1024
-                unit = "MB"
-            }
-            if size >= 1024 {
-                size /= 1024
-                unit = "GB"
+            if size == 1 {
+                unit = "byte"
+            } else {
+                if size >= 1024 {
+                    size /= 1024
+                    unit = "KB"
+                }
+                if size >= 1024 {
+                    size /= 1024
+                    unit = "MB"
+                }
+                if size >= 1024 {
+                    size /= 1024
+                    unit = "GB"
+                }
             }
             return "\(size) \(unit)"
         }

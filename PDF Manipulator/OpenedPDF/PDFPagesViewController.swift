@@ -185,6 +185,14 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                         Image(systemName: "pencil")
                     }
 
+                    if UIDevice.current.userInterfaceIdiom == .pad {
+                        Button {
+                            UIApplication.activateRecentlyOpenedPDFsScene(requestingScene: scene!)
+                        } label: {
+                            Image(systemName: "folder")
+                        }
+                    }
+
                     if horizontalSizeClass == .compact || UIDevice.current.userInterfaceIdiom == .phone {
                         Button {
                             self.pdfPagesViewController.showSidebar(presentSideBarInteractively: false)

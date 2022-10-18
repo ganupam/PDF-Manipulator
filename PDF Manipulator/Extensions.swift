@@ -193,6 +193,16 @@ extension UIApplication {
             RecentlyOpenFilesManager.sharedInstance.addURL(url)
         }
     }
+    
+    class func activateRecentlyOpenedPDFsScene(requestingScene: UIWindowScene) {
+        let session = UIApplication.shared.openSessions.first {
+            $0.configuration.name == "Default Configuration"
+        }
+
+        let activationOptions = UIWindowScene.ActivationRequestOptions()
+        activationOptions.requestingScene = requestingScene
+        UIApplication.shared.requestSceneSessionActivation(session, userActivity: nil, options: activationOptions)
+    }
 }
 
 extension URL {
