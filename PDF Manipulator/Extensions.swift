@@ -189,7 +189,9 @@ extension UIApplication {
             }
             
             let vc = PDFPagesViewController(pdfDoc: pdf, scene: scene)
-            (scene.keyWindow?.rootViewController as? UINavigationController)?.pushViewController(vc, animated: true)
+            let navVC = (scene.keyWindow?.rootViewController as? UINavigationController)
+            navVC?.popToRootViewController(animated: false)
+            navVC?.pushViewController(vc, animated: true)
             RecentlyOpenFilesManager.sharedInstance.addURL(url)
         }
     }

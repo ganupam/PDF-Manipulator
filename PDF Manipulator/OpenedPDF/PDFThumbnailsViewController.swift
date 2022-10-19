@@ -93,18 +93,26 @@ extension PDFThumbnailsViewController {
             }
             return itemProvider
         }
+        
+        private var vcShownAsSideBar: Bool {
+            scene.keyWindow?.traitCollection.horizontalSizeClass == .compact || UIDevice.current.userInterfaceIdiom == .phone
+        }
+        
+        private func dismissSideBar(completion: (() -> Void)? = nil) {
+            let pdfThumbnailVC: PDFThumbnailsViewController
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                pdfThumbnailVC = (scene.keyWindow?.rootViewController as? SplitViewController)?.viewControllers[0].presentedViewController as! PDFThumbnailsViewController
+            } else {
+                pdfThumbnailVC = scene.keyWindow?.rootViewController?.presentedViewController as! PDFThumbnailsViewController
+            }
+            pdfThumbnailVC.dismiss(animated: true, completion: completion)
+        }
 
         @ViewBuilder
         private var navBarLeadingButton: some View {
-            if scene.keyWindow?.traitCollection.horizontalSizeClass == .compact || UIDevice.current.userInterfaceIdiom == .phone {
+            if vcShownAsSideBar {
                 Button {
-                    let pdfThumbnailVC: PDFThumbnailsViewController
-                    if UIDevice.current.userInterfaceIdiom == .pad {
-                        pdfThumbnailVC = (scene.keyWindow?.rootViewController as? SplitViewController)?.viewControllers[0].presentedViewController as! PDFThumbnailsViewController
-                    } else {
-                        pdfThumbnailVC = scene.keyWindow?.rootViewController?.presentedViewController as! PDFThumbnailsViewController
-                    }
-                    pdfThumbnailVC.dismiss(animated: true)
+                    self.dismissSideBar()
                 } label: {
                     Image(systemName: "xmark")
                 }
@@ -245,14 +253,22 @@ extension PDFThumbnailsViewController {
                     
                     guard let url else { return }
                     
-                    for i in 0 ..< isSelected.count {
-                        isSelected[i] = false
-                    }
-                    withAnimation {
-                        inSelectionMode = false
+                    func openPDF() {
+                        for i in 0 ..< isSelected.count {
+                            isSelected[i] = false
+                        }
+                        withAnimation {
+                            inSelectionMode = false
+                        }
+                        
+                        UIApplication.openPDF(url, requestingScene: self.scene)
                     }
                     
-                    UIApplication.openPDF(url, requestingScene: self.scene)
+                    if vcShownAsSideBar {
+                        self.dismissSideBar(completion: openPDF)
+                    } else {
+                        openPDF()
+                    }
                 }
             }
         }
@@ -284,7 +300,7 @@ extension PDFThumbnailsViewController {
                 insertionIndex += 1
             }
             
-            let filename = scene.session.url!.deletingPathExtension().lastPathComponent
+            let filename = self.pdfDoc.documentURL!.deletingPathExtension().lastPathComponent
             let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename).appendingPathExtension("pdf")
             
             guard pdf.write(to: url) else {

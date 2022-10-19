@@ -102,7 +102,9 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         @State private var hidePrimaryColumn = true
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
         @Environment(\.parentViewController) private var parentViewController
-        
+        @State private var scaleFactor = 1.0
+        @State private var previousScaleFactor = 1.0
+
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
 
@@ -122,10 +124,11 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                     EmptyView()
                 } else {
                     ScrollViewReader { scrollReader in
-                        ScrollView {
+                        ScrollView(scaleFactor == 1.0 ? .vertical : [.horizontal, .vertical], showsIndicators: scaleFactor == 1.0) {
                             LazyVStack(spacing: Self.verticalSpacing) {
                                 ForEach(0 ..< pdfDoc.pageCount, id: \.self) { pageIndex in
                                     createList(width: (reader.size.width - (Self.gridPadding * 2)), pageIndex: pageIndex)
+                                        .frame(width: (reader.size.width - (Self.gridPadding * 2)) * scaleFactor, height: pagesModel.pagesAspectRatio[pageIndex] * (reader.size.width - (Self.gridPadding * 2)) * scaleFactor)
                                         .overlay {
                                             GeometryReader { geometry in
                                                 Color.clear.preference(
@@ -145,6 +148,11 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                             }
                             .padding(Self.gridPadding)
                         }
+                        .gesture(MagnificationGesture().onChanged { newValue in
+                            scaleFactor = max(previousScaleFactor * newValue, 1)
+                        }.onEnded { _ in
+                            previousScaleFactor = scaleFactor
+                        })
                         .onReceive(NotificationCenter.default.publisher(for: Common.activePageChangedNotification)) { notification in
                             guard let pagesModel = notification.object as? PDFPagesModel, pagesModel !== self.pagesModel, pagesModel.pdf.documentURL == pdfDoc.documentURL, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
 
@@ -209,7 +217,6 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
             
             return Thumbnail(pagesModel: pagesModel, pageIndex: pageIndex)
                 .border(.black, width: 0.5)
-                .frame(height: pagesModel.pagesAspectRatio[pageIndex] * width)
         }
         
         private struct Thumbnail: View {
@@ -227,6 +234,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                 if pageIndex < pagesModel.images.count {
                     if let image = pagesModel.images[pageIndex] {
                         Image(uiImage: image)
+                            .resizable()
                     } else {
                         Color.white
                     }

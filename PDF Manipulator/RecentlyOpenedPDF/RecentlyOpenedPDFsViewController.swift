@@ -62,7 +62,6 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                         Text("noRecentlyOpenedFiles")
                             .bold()
                             .padding(.bottom, 2)
-                            //.foregroundColor(.gray)
                         
                         HStack(spacing: 0) {
                             Text("Tap on ")
@@ -90,7 +89,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                 
                                 Spacer()
                             }
-                            .padding(.top, 10)
+                            .padding(.top, 20)
                             
                             LazyVGrid(columns: gridItems(containerWidth: reader.size.width), spacing: 25) {
                                 ForEach(recentlyOpenFilesManager.urls, id: \.self) { url in
