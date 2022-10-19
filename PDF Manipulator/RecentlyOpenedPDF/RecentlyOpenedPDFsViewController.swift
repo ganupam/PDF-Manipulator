@@ -10,6 +10,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import QuickLookThumbnailing
 import Combine
+import PDFKit
 
 final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpenedPDFsViewController.RecentlyOpenedPDFsView> {
     let scene: UIWindowScene
@@ -21,13 +22,11 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
     init(scene: UIWindowScene) {
         self.scene = scene
         
-        super.init(rootView: RecentlyOpenedPDFsView())        
+        super.init(rootView: RecentlyOpenedPDFsView(scene: scene))
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        self.rootView = RecentlyOpenedPDFsView(scene: self.scene)
         
         // Always show the navigation bar not just when scrolled.
         let appearance = UINavigationBarAppearance()
@@ -39,14 +38,73 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
     }
     
     struct RecentlyOpenedPDFsView: View {
+        let scene: UIWindowScene
+
         private static let horizontalSpacing = 15.0
         private static let minimumColumnWidth = 110.0
-        private(set) var scene: UIWindowScene? = nil
         private static let thumbnailHeight = 110.0
         
         @State private var showingFilePicker = false
         @ObservedObject private var recentlyOpenFilesManager = RecentlyOpenFilesManager.sharedInstance
         @State private var thumbnails = [URL : UIImage]()
+        
+        
+        private func contextMenu(url: URL) -> some View {
+            let recentlyOpenedURLs = RecentlyOpenFilesManager.sharedInstance.urls.filter { recentlyOpenedURL in
+                url != recentlyOpenedURL
+            }.prefix(5)
+
+            return Group {
+                Section("addPagesToRecentFiles") {
+                    ForEach(recentlyOpenedURLs, id: \.self) { recentlyOpenedURL in
+                        if recentlyOpenedURL != url, let filename = recentlyOpenedURL.lastPathComponent {
+                            Button {
+                                guard url.startAccessingSecurityScopedResource() else { return }
+                                
+                                defer {
+                                    url.stopAccessingSecurityScopedResource()
+                                }
+                                
+                                guard let doc = PDFDocument(url: url) else { return }
+                                
+                                let pages = (0 ..< doc.pageCount).compactMap {
+                                    doc.page(at: $0)
+                                }
+                                
+                            } label: {
+                                Label {
+                                    Text(filename)
+                                } icon: {
+                                    Image(systemName: "plus.rectangle.portrait")
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                Section {
+                    Button {
+
+                    } label: {
+                        Label {
+                            Text("addPagesToExistingPDF")
+                        } icon: {
+                            Image(systemName: "doc.on.doc")
+                        }
+                    }
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        withAnimation {
+                            RecentlyOpenFilesManager.sharedInstance.removeURL(url)
+                        }
+                    } label: {
+                        Label("generalRemove", systemImage: "trash")
+                    }
+                }
+            }
+        }
         
         var body: some View {
             Group {
@@ -95,8 +153,8 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                 ForEach(recentlyOpenFilesManager.urls, id: \.self) { url in
                                     VStack(spacing: 0) {
                                         Image(uiImage: thumbnails[url] ?? UIImage())
+                                            .frame(width: thumbnails[url] == nil ? Self.thumbnailHeight : nil, height: Self.thumbnailHeight)
                                             .border(.gray, width: 0.5)
-                                            .frame(height: Self.thumbnailHeight)
                                             .onDrag {
                                                 let itemProvider = NSItemProvider(contentsOf: url)!
                                                 
@@ -106,6 +164,9 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                                 itemProvider.registerObject(activity, visibility: .all)
                                                 itemProvider.suggestedName = url.lastPathComponent
                                                 return itemProvider
+                                            }
+                                            .contextMenu {
+                                                contextMenu(url: url)
                                             }
 
                                         Text(verbatim: "\(url.lastPathComponent)")
@@ -123,7 +184,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                         Spacer(minLength: 0)
                                     }
                                     .onTapGesture {
-                                        UIApplication.openPDF(url, requestingScene: self.scene!)
+                                        UIApplication.openPDF(url, requestingScene: self.scene)
                                     }
                                 }
                             }
@@ -155,7 +216,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                 FilePickerView(operationMode: .open(selectableContentTypes: [UTType.pdf])) { url in
                     guard let url else { return }
                     
-                    UIApplication.openPDF(url, requestingScene: self.scene!)
+                    UIApplication.openPDF(url, requestingScene: self.scene)
                 }
             }
         }

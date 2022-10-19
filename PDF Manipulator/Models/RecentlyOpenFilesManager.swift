@@ -29,6 +29,14 @@ final class RecentlyOpenFilesManager: NSObject, ObservableObject {
         
         super.init()
         
+        self.removeNonExistentFiles()
+        
+        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: nil) { [weak self] _ in
+            self?.removeNonExistentFiles()
+        }
+    }
+    
+    private func removeNonExistentFiles() {
         self.urls.removeAll { url in
             !FileManager.default.fileExists(atPath: url.path)
         }

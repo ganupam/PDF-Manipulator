@@ -150,6 +150,54 @@ extension PDFThumbnailsViewController {
             }
         }
         
+        private func copyPagesSubmenu(pageIndices: [Int]) -> some View {
+            let recentlyOpenedURLs = RecentlyOpenFilesManager.sharedInstance.urls.filter { url in
+                url != self.pdfDoc.documentURL
+            }.prefix(5)
+            
+            return Group {
+                Section {
+                    Button {
+                        guard let tmpPDFUrl = self.createTmpPDF(pageIndices: pageIndices) else { return }
+                        
+                        pdfToExport = tmpPDFUrl
+                    } label: {
+                        Label {
+                            Text("savePagesAsNewDocument")
+                        } icon: {
+                            Image(systemName: "doc.badge.plus")
+                        }
+                    }
+                }
+
+                Section {
+                    Button {
+
+                    } label: {
+                        Label {
+                            Text("addSelectedPagesToExistingPDF")
+                        } icon: {
+                            Image(systemName: "doc.on.doc")
+                        }
+                    }
+                }
+                
+                Section("addSelectedPagesToRecentFiles") {
+                    ForEach(recentlyOpenedURLs, id: \.self) { url in
+                        Button {
+                            
+                        } label: {
+                            Label {
+                                Text(url.lastPathComponent)
+                            } icon: {
+                                Image(systemName: "plus.rectangle.portrait")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         private var mainBody: some View {
             GeometryReader { reader in
                 if reader.size.width == 0 {
@@ -210,10 +258,8 @@ extension PDFThumbnailsViewController {
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar) {
                     if inSelectionMode {
-                        Button {
-                            guard let tmpPDFUrl = self.createTmpPDF() else { return }
-                            
-                            pdfToExport = tmpPDFUrl
+                        Menu {
+                            copyPagesSubmenu(pageIndices: isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil })
                         } label: {
                             Image(systemName: "doc.badge.plus")
                         }
@@ -286,13 +332,12 @@ extension PDFThumbnailsViewController {
             VC?.present(alert, animated: true)
         }
         
-        private func createTmpPDF() -> URL? {
+        private func createTmpPDF(pageIndices: [Int]) -> URL? {
             let pdf = PDFDocument()
             
             var insertionIndex = 0
-            isSelected.enumerated().forEach {
-                let (index, value) = $0
-                guard value, let page = self.pdfDoc.page(at: index) else {
+            pageIndices.forEach {
+                guard let page = self.pdfDoc.page(at: $0) else {
                     return
                 }
                 
@@ -396,29 +441,7 @@ extension PDFThumbnailsViewController {
                     }
                 }
                 
-                Section {
-                    ForEach(Array(UIApplication.shared.openSessions), id: \.self) { session in
-                        if session.url != scene.session.url, let filename = session.url?.lastPathComponent {
-                            Button {
-                                if let page = pagesModel.pdf.page(at: adjustedPageIndex) {
-                                    var timer: Timer? = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { _ in
-                                        session.addPages([page])
-                                    }
-                                    UIApplication.shared.requestSceneSessionActivation(session, userActivity: nil, options: nil) { _ in
-                                        timer?.invalidate()
-                                        timer = nil
-                                    }
-                                }
-                            } label: {
-                                Label {
-                                    Text(String(format: NSLocalizedString("addPageToOpenDoc", comment: ""), filename))
-                                } icon: {
-                                    Image(systemName: "plus.rectangle.portrait")
-                                }
-                            }
-                        }
-                    }
-                }
+                copyPagesSubmenu(pageIndices: [adjustedPageIndex])
                 
                 Section {
                     Button(role: .destructive) {
