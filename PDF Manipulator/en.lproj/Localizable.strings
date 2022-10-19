@@ -19,3 +19,4 @@
 "generalCancel" = "Cancel";
 "generalDelete" = "Delete";
 "deletePagesConfirmationTitle" = "Do you want to delete %1$d page(s)?";
+"noRecentlyOpenedFiles" = "No recently opened files";

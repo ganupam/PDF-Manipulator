@@ -28,6 +28,10 @@ final class RecentlyOpenFilesManager: NSObject, ObservableObject {
         }
         
         super.init()
+        
+        self.urls.removeAll { url in
+            !FileManager.default.fileExists(atPath: url.path)
+        }
     }
     
     func addURL(_ url: URL) {

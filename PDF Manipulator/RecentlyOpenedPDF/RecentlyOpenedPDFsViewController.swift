@@ -49,59 +49,106 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
         @State private var thumbnails = [URL : UIImage]()
         
         var body: some View {
-            GeometryReader { reader in
-                ScrollView {
-                    HStack {
-                        Text("recentlyOpenedFiles")
-                            .font(.title2.bold())
-                            .padding(.horizontal, 16)
+            Group {
+                if recentlyOpenFilesManager.urls.count == 0 {
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
                         
-                        Spacer()
-                    }
-                    .padding(.top, 10)
-                    
-                    LazyVGrid(columns: gridItems(containerWidth: reader.size.width), spacing: 25) {
-                        ForEach(recentlyOpenFilesManager.urls, id: \.self) { url in
-                            VStack(spacing: 0) {
-                                Image(uiImage: thumbnails[url] ?? UIImage())
-                                    .border(.gray, width: 0.5)
-                                    .frame(height: Self.thumbnailHeight)
-                                
-                                Text(verbatim: "\(url.lastPathComponent)")
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.top, 8)
-                                    .font(.subheadline)
-
-                                Text(verbatim: "\(size(of: url))")
-                                    .lineLimit(1)
-                                    .padding(.top, 3)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-
-                                Spacer(minLength: 0)
-                            }
-                            .onTapGesture {
-                                UIApplication.openPDF(url, requestingScene: self.scene!)
-                            }
-                        }
-                    }
-                    .padding([.horizontal, .bottom], Self.horizontalSpacing)
-                }
-                .animation(.linear(duration: 0.2), value: recentlyOpenFilesManager.urls)
-                .navigationTitle("PDF Manipulator")
-                .onReceive(NotificationCenter.default.publisher(for: RecentlyOpenFilesManager.URLAddedNotification)) { notification in
-                    guard let url = notification.userInfo?[RecentlyOpenFilesManager.urlUserInfoKey] as? URL else { return }
-                    
-                    self.generateThumbnails(urls: [url])
-                }
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            showingFilePicker = true
-                        } label: {
+                        Image(systemName: "clock")
+                            .font(.system(size: 60))
+                            .foregroundColor(.gray)
+                            .padding(.bottom, 10)
+                        
+                        Text("noRecentlyOpenedFiles")
+                            .bold()
+                            .padding(.bottom, 2)
+                            //.foregroundColor(.gray)
+                        
+                        HStack(spacing: 0) {
+                            Text("Tap on ")
+                            
                             Image(systemName: "folder")
+
+                            Text(" at the top to open a PDF file")
                         }
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+
+                        Spacer(minLength: 0)
+                    }
+                } else {
+                    GeometryReader { reader in
+                        ScrollView {
+                            HStack {
+                                Label {
+                                    Text("recentlyOpenedFiles")
+                                } icon: {
+                                    Image(systemName: "clock")
+                                }
+                                .font(.title3.bold())
+                                .padding(.horizontal, 16)
+                                
+                                Spacer()
+                            }
+                            .padding(.top, 10)
+                            
+                            LazyVGrid(columns: gridItems(containerWidth: reader.size.width), spacing: 25) {
+                                ForEach(recentlyOpenFilesManager.urls, id: \.self) { url in
+                                    VStack(spacing: 0) {
+                                        Image(uiImage: thumbnails[url] ?? UIImage())
+                                            .border(.gray, width: 0.5)
+                                            .frame(height: Self.thumbnailHeight)
+                                            .onDrag {
+                                                let itemProvider = NSItemProvider(contentsOf: url)!
+                                                
+                                                // Support for drag-drop to create new window scene.
+                                                let activity = NSUserActivity(activityType: .openPDFUserActivityType)
+                                                activity.userInfo = [String.urlBookmarkDataKey : try! url.bookmarkData(options: .minimalBookmark)]
+                                                itemProvider.registerObject(activity, visibility: .all)
+                                                itemProvider.suggestedName = url.lastPathComponent
+                                                return itemProvider
+                                            }
+
+                                        Text(verbatim: "\(url.lastPathComponent)")
+                                            .lineLimit(2)
+                                            .multilineTextAlignment(.center)
+                                            .padding(.top, 8)
+                                            .font(.subheadline)
+                                        
+                                        Text(verbatim: "\(size(of: url))")
+                                            .lineLimit(1)
+                                            .padding(.top, 3)
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                        
+                                        Spacer(minLength: 0)
+                                    }
+                                    .onTapGesture {
+                                        UIApplication.openPDF(url, requestingScene: self.scene!)
+                                    }
+                                }
+                            }
+                            .padding([.horizontal, .bottom], Self.horizontalSpacing)
+                        }
+                        .animation(.linear(duration: 0.2), value: recentlyOpenFilesManager.urls)
+                        .onReceive(NotificationCenter.default.publisher(for: RecentlyOpenFilesManager.URLAddedNotification)) { notification in
+                            guard let url = notification.userInfo?[RecentlyOpenFilesManager.urlUserInfoKey] as? URL else { return }
+                            
+                            self.generateThumbnails(urls: [url])
+                        }
+                        .onAppear() {
+                            generateThumbnails(urls: recentlyOpenFilesManager.urls)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("PDF Manipulator")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingFilePicker = true
+                    } label: {
+                        Image(systemName: "folder")
                     }
                 }
             }
@@ -111,9 +158,6 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                     
                     UIApplication.openPDF(url, requestingScene: self.scene!)
                 }
-            }
-            .onAppear() {
-                generateThumbnails(urls: recentlyOpenFilesManager.urls)
             }
         }
         

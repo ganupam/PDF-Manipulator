@@ -17,12 +17,10 @@
 	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<true/>
-	<key>UISupportsDocumentBrowser</key>
-	<false/>
-	<key>CFBundleIdentifier</key>
-	<string></string>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.realnotion.pdfmanipulator.openpdf</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

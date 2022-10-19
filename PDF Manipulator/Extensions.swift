@@ -215,3 +215,14 @@ extension URL {
         }
     }
 }
+
+extension View {
+    @ViewBuilder
+    func contextMenus<M, P>(@ViewBuilder menuItems: () -> M, @ViewBuilder preview: () -> P) -> some View where M : View, P : View {
+        if #available(iOS 16, *) {
+            self.contextMenu(menuItems: menuItems, preview: preview)
+        } else {
+            self.contextMenu(menuItems: menuItems)
+        }
+    }
+}

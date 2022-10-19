@@ -455,13 +455,20 @@ extension PDFThumbnailsViewController {
                         .frame(width: 44, height: 44)
                     }
                 }
-                .onDrag {
+                .onDrag({
                     internalDragPageIndex = adjustedPageIndex
                     return dragItemProvider(pageIndex: adjustedPageIndex)
-                }
-                .contextMenu {
+                }, preview: {
+                    Thumbnail(pagesModel: pagesModel, pageIndex: adjustedPageIndex, tapped: {})
+                        .border(.black, width: 0.5)
+                        .frame(height: pagesModel.pagesAspectRatio[adjustedPageIndex] * width)
+                })
+                .contextMenus(menuItems: {
                     menu(adjustedPageIndex: adjustedPageIndex)
-                }
+                }, preview: {
+                    Thumbnail(pagesModel: pagesModel, pageIndex: adjustedPageIndex, tapped: {})
+                        .frame(height: pagesModel.pagesAspectRatio[adjustedPageIndex] * width)
+                })
                 .padding(.horizontal, 5)
                 .padding(.vertical, 5)
                 .background(!inSelectionMode && adjustedPageIndex == activePageIndex ? Color(white: 0.8) : .clear)

@@ -189,7 +189,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                         Button {
                             UIApplication.activateRecentlyOpenedPDFsScene(requestingScene: scene!)
                         } label: {
-                            Image(systemName: "folder")
+                            Image(systemName: "clock")
                         }
                     }
 
