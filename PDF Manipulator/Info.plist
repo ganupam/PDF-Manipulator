@@ -19,7 +19,7 @@
 	<false/>
 	<key>NSUserActivityTypes</key>
 	<array>
-		<string>com.realnotion.pdfmanipulator.openpdf</string>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER).openpdf</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>

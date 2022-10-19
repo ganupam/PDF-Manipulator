@@ -123,7 +123,7 @@ extension PDFThumbnailsViewController {
             Button {
                 inSelectionMode.toggle()
             } label: {
-                Text(NSLocalizedString(inSelectionMode ? "Done" : "Select pages", comment: ""))
+                Text(NSLocalizedString(inSelectionMode ? "generalDone" : "selectPages", comment: ""))
             }
         }
         

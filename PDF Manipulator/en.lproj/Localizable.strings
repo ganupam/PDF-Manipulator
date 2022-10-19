@@ -13,7 +13,7 @@
 "pageDelete" = "Delete";
 "addPageToOpenDoc" = "Add to %1$@";
 "errorUnableToCreateFile" = "Unable to create new file";
-"selectPages" = "Select Pages";
+"selectPages" = "Select";
 "generalDone" = "Done";
 "recentlyOpenedFiles" = "Recently opened files";
 "generalCancel" = "Cancel";
