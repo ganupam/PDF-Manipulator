@@ -12,7 +12,7 @@ import QuickLook
 
 final class PDFPagesViewController: UIHostingController<PDFPagesViewController.OuterPDFMainView> {
     let pdfManager: PDFManager
-    let scene: UIWindowScene
+    unowned let scene: UIWindowScene
     
     private var presentationManager: PresentationManager?
     
@@ -83,26 +83,24 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
 
     struct OuterPDFMainView: View {
         let pdfManager: PDFManager
-        let scene: UIWindowScene
+        unowned let scene: UIWindowScene
         unowned let pdfPagesVC: PDFPagesViewController!
         
         var body: some View {
-            PDFMainView(pdfManager: pdfManager, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
-                .environment(\.windowScene, scene)
-                .environment(\.parentViewController, pdfPagesVC)
+            PDFMainView(scene: scene, pdfManager: pdfManager, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
         }
     }
     
     private struct PDFMainView: View {
         let pdfManager: PDFManager
+        unowned let scene: UIWindowScene
+        unowned let parentViewController: UIViewController?
 
         @StateObject private var pagesModel: PDFPagesModel
-        @Environment(\.windowScene) private var scene
         @State private var activePageIndex = 0
         @State private var disablePostingActivePageIndexNotification = false
         @State private var hidePrimaryColumn = true
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-        @Environment(\.parentViewController) private var parentViewController
         @State private var identifier: UUID
         @State private var scaleFactor = 1.0
         @State private var previousScaleFactor = 1.0
@@ -110,7 +108,9 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
         
-        init(pdfManager: PDFManager, displayScale: Double) {
+        init(scene: UIWindowScene, parentViewController: UIViewController? = nil, pdfManager: PDFManager, displayScale: Double) {
+            self.scene = scene
+            self.parentViewController = parentViewController
             self.pdfManager = pdfManager
             let uuid = UUID()
             _identifier = State(initialValue: uuid)
@@ -179,7 +179,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                     if !(horizontalSizeClass == .compact || UIDevice.current.userInterfaceIdiom == .phone) {
                         Button {
                             UIView.animate(withDuration: 0.4) {
-                                (scene?.keyWindow?.rootViewController as? SplitViewController)?.preferredDisplayMode = hidePrimaryColumn ? .secondaryOnly : .oneBesideSecondary
+                                (scene.keyWindow?.rootViewController as? SplitViewController)?.preferredDisplayMode = hidePrimaryColumn ? .secondaryOnly : .oneBesideSecondary
                             }
                             withAnimation {
                                 hidePrimaryColumn.toggle()
@@ -199,7 +199,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
 
                     if UIDevice.current.userInterfaceIdiom == .pad {
                         Button {
-                            UIApplication.activateRecentlyOpenedPDFsScene(requestingScene: scene!)
+                            UIApplication.activateRecentlyOpenedPDFsScene(requestingScene: scene)
                         } label: {
                             Image(systemName: "clock")
                         }

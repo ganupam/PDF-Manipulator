@@ -9,7 +9,7 @@ import UIKit
 import PDFKit
 
 final class SplitViewController: UISplitViewController {
-    let scene: UIWindowScene
+    unowned let scene: UIWindowScene
     private lazy var pagesNavVC = {
         let vc = PDFPagesViewController(pdfManager: scene.session.pdfManager!, scene: scene)
         return UINavigationController(rootViewController: vc)

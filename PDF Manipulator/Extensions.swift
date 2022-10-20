@@ -24,26 +24,6 @@ extension String {
     }
 }
 
-private struct WindowSceneEnvironmentKey: EnvironmentKey {
-    static let defaultValue: UIWindowScene? = nil
-}
-
-private struct ParentViewControllerEnvironmentKey: EnvironmentKey {
-    static let defaultValue: UIViewController = UIViewController()
-}
-
-extension EnvironmentValues {
-    var windowScene: UIWindowScene? {
-        get { self[WindowSceneEnvironmentKey.self] }
-        set { self[WindowSceneEnvironmentKey.self] = newValue }
-    }
-    
-    var parentViewController: UIViewController {
-        get { self[ParentViewControllerEnvironmentKey.self] }
-        set { self[ParentViewControllerEnvironmentKey.self] = newValue }
-    }
-}
-
 extension UIAlertController {
     static func show(title: String? = nil, message: String? = nil, defaultButtonTitle: String = NSLocalizedString("generalOK", comment: ""), scene: UIWindowScene) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)

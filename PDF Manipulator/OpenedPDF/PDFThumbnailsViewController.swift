@@ -14,7 +14,7 @@ final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewCo
     private static let supportedDroppedItemProviders = [UTType.pdf, UTType.jpeg, UTType.gif, UTType.bmp, UTType.png, UTType.tiff]
     
     let pdfManager: PDFManager
-    let scene: UIWindowScene
+    unowned let scene: UIWindowScene
     
     init(pdfManager: PDFManager, scene: UIWindowScene) {
         self.pdfManager = pdfManager
@@ -31,17 +31,16 @@ final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewCo
 extension PDFThumbnailsViewController {
     struct OuterPDFThumbnailView: View {
         let pdfManager: PDFManager
-        let scene: UIWindowScene
+        unowned let scene: UIWindowScene
         
         var body: some View {
             PDFThumbnails(pdfManager: pdfManager, scene: scene)
-                .environment(\.windowScene, scene)
         }
     }
     
     struct PDFThumbnails: View {
         let pdfManager: PDFManager
-        let scene: UIWindowScene
+        unowned let scene: UIWindowScene
         @State private var isSelected: [Bool]
         @StateObject private var pagesModel: PDFPagesModel
         @State private var pageIDs: [UUID]
