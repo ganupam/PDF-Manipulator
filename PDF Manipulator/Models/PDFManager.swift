@@ -20,7 +20,8 @@ final class PDFManager {
     private var registeredObjects = [UUID : PDFPagesModel]()
     
     private var pdfDoc: PDFDocument
-    
+    private(set) var pagesAspectRatio: [Double]
+
     let url: URL
     
     init?(url: URL) {
@@ -30,6 +31,18 @@ final class PDFManager {
     
         self.url = url
         self.pdfDoc = doc
+        
+        self.pagesAspectRatio = Array(repeating: 0.0, count: self.pdfDoc.pageCount)
+        for i in (0 ..< self.pdfDoc.pageCount) {
+            guard let page = self.pdfDoc.page(at: i) else {
+                self.pagesAspectRatio[i] = 0
+                continue
+            }
+            
+            let size = page.bounds(for: .mediaBox).size
+            let rotationAngle = page.rotation
+            self.pagesAspectRatio[i] = ((rotationAngle % 180) == 0) ? (size.height / size.width) : (size.width / size.height)
+        }
     }
     
     deinit {
@@ -78,11 +91,13 @@ final class PDFManager {
         
         pages.enumerated().forEach {
             let (i, page) = $0
+            let size = page.bounds(for: .mediaBox)
+            self.pagesAspectRatio.insert(((page.rotation % 180) == 0) ? (size.height / size.width) : (size.width / size.height), at: newPageIndices[i])
             self.pdfDoc.insert(page, at: newPageIndices[i])
         }
 
         self.registeredObjects.values.forEach { model in
-            model.insertPages(pages, at: newPageIndices)
+            model.insertPages(at: newPageIndices)
         }
     }
     
@@ -107,6 +122,8 @@ final class PDFManager {
             guard let page = self.pdfDoc.page(at: index) else { continue }
             
             page.rotation += angle
+            let size = page.bounds(for: .mediaBox).size
+            self.pagesAspectRatio[index] = ((page.rotation % 180) == 0) ? (size.height / size.width) : (size.width / size.height)
         }
         
         self.registeredObjects.values.forEach { model in
@@ -128,6 +145,7 @@ final class PDFManager {
         NotificationCenter.default.post(name: PDFManager.willDeletePages, object: self, userInfo: [PDFManager.pagesIndicesKey : Array(indices)])
 
         indices.forEach {
+            self.pagesAspectRatio.remove(at: $0)
             self.pdfDoc.removePage(at: $0)
         }
 
@@ -137,6 +155,10 @@ final class PDFManager {
     }
     
     func exchangeImages(index1: Int, index2: Int, identifier: UUID) {
+        let aspectRatio = self.pagesAspectRatio[index1]
+        self.pagesAspectRatio[index1] = self.pagesAspectRatio[index2]
+        self.pagesAspectRatio[index2] = aspectRatio
+
         self.model(with: identifier).exchangeImages(index1: index1, index2: index2)
     }
     
@@ -164,7 +186,6 @@ final class PDFPagesModel: ObservableObject {
     
     @Published private(set) var images: [UIImage?]
     private var imageGenerationState: [ImageGenerationState]
-    private(set) var pagesAspectRatio: [Double]
     private var currentWidth = 0.0
     
     fileprivate init(pdf: PDFDocument, displayScale: Double, enableLogging: Bool = false) {
@@ -173,17 +194,6 @@ final class PDFPagesModel: ObservableObject {
         self.enableLogging = enableLogging
         self.images = Array(repeating: nil, count: pdf.pageCount)
         self.imageGenerationState = Array(repeating: .notStarted, count: pdf.pageCount)
-        self.pagesAspectRatio = Array(repeating: 0.0, count: self.pdf.pageCount)
-        for i in (0 ..< self.pdf.pageCount) {
-            guard let page = self.pdf.page(at: i) else {
-                self.pagesAspectRatio[i] = 0
-                continue
-            }
-            
-            let size = page.bounds(for: .mediaBox).size
-            let rotationAngle = page.rotation
-            self.pagesAspectRatio[i] = ((rotationAngle % 180) == 0) ? (size.height / size.width) : (size.width / size.height)
-        }
     }
     
     fileprivate func changeWidth(_ width: Double) {
@@ -237,22 +247,15 @@ final class PDFPagesModel: ObservableObject {
         return UIImage(cgImage: imgCGImage, scale: self.displayScale, orientation: .up)
     }
     
-    fileprivate func insertPages(_ pages: [PDFPage], at newPageIndices: [Int]) {
-        pages.enumerated().forEach {
-            let (i, page) = $0
-            let size = page.bounds(for: .mediaBox)
-            self.pagesAspectRatio.insert(((page.rotation % 180) == 0) ? (size.height / size.width) : (size.width / size.height), at: newPageIndices[i])
-            self.imageGenerationState.insert(.notStarted, at: newPageIndices[i])
-            self.images.insert(nil, at: newPageIndices[i])
+    fileprivate func insertPages(at newPageIndices: [Int]) {
+        for newPageIndex in newPageIndices {
+            self.imageGenerationState.insert(.notStarted, at: newPageIndex)
+            self.images.insert(nil, at: newPageIndex)
         }
     }
 
     fileprivate func rotate(_ indices: [Int], angle: Int) {
         for index in indices {
-            guard let page = self.pdf.page(at: index) else { continue }
-            
-            let size = page.bounds(for: .mediaBox).size
-            self.pagesAspectRatio[index] = ((page.rotation % 180) == 0) ? (size.height / size.width) : (size.width / size.height)
             self.imageGenerationState[index] = .notStarted
             self.images[index] = nil
         }
@@ -260,17 +263,12 @@ final class PDFPagesModel: ObservableObject {
     
     fileprivate func delete(_ indices: [Int]) {
         indices.forEach {
-            self.pagesAspectRatio.remove(at: $0)
             self.imageGenerationState.remove(at: $0)
             self.images.remove(at: $0)
         }
     }
     
     fileprivate func exchangeImages(index1: Int, index2: Int) {
-        let aspectRatio = self.pagesAspectRatio[index1]
-        self.pagesAspectRatio[index1] = self.pagesAspectRatio[index2]
-        self.pagesAspectRatio[index2] = aspectRatio
-
         let img = self.images[index1]
         self.images[index1] = self.images[index2]
         self.images[index2] = img

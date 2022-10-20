@@ -258,6 +258,19 @@ extension PDFThumbnailsViewController {
                     pageIDs.remove(at: index)
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: PDFManager.didExchangePages)) { notification in
+                guard (notification.object as? PDFManager)?.url == pdfManager.url else { return }
+
+                guard let indices = notification.userInfo?[PDFManager.pagesIndicesKey] as? [Int], indices.count == 2 else { return }
+
+                let selected = isSelected[indices[0]]
+                isSelected[indices[0]] = isSelected[indices[1]]
+                isSelected[indices[1]] = selected
+                
+                let pageID = pageIDs[indices[0]]
+                pageIDs[indices[0]] = pageIDs[indices[1]]
+                pageIDs[indices[1]] = pageID
+            }
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar) {
                     if inSelectionMode {
@@ -481,7 +494,7 @@ extension PDFThumbnailsViewController {
                     }
                 })
                 .border(inSelectionMode && isSelected[adjustedPageIndex] ? .blue : .black, width: inSelectionMode && isSelected[adjustedPageIndex] ? 2 : 0.5)
-                .frame(height: pagesModel.pagesAspectRatio[adjustedPageIndex] * width)
+                .frame(height: pdfManager.pagesAspectRatio[adjustedPageIndex] * width)
                 .overlay {
                     if !inSelectionMode && adjustedPageIndex == activePageIndex {
                         Color.black.opacity(0.2)
@@ -502,13 +515,13 @@ extension PDFThumbnailsViewController {
                 }, preview: {
                     Thumbnail(pdfManager: pdfManager, pagesModel: pagesModel, pageIndex: adjustedPageIndex, identifier: self.identifier, tapped: {})
                         .border(.black, width: 0.5)
-                        .frame(height: pagesModel.pagesAspectRatio[adjustedPageIndex] * width)
+                        .frame(height: pdfManager.pagesAspectRatio[adjustedPageIndex] * width)
                 })
                 .contextMenus(menuItems: {
                     menu(adjustedPageIndex: adjustedPageIndex)
                 }, preview: {
                     Thumbnail(pdfManager: pdfManager, pagesModel: pagesModel, pageIndex: adjustedPageIndex, identifier: self.identifier, tapped: {})
-                        .frame(height: pagesModel.pagesAspectRatio[adjustedPageIndex] * width)
+                        .frame(height: pdfManager.pagesAspectRatio[adjustedPageIndex] * width)
                 })
                 .padding(.horizontal, 5)
                 .padding(.vertical, 5)

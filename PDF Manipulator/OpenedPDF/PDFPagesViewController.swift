@@ -132,7 +132,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                             LazyVStack(spacing: Self.verticalSpacing) {
                                 ForEach(0 ..< pdfManager.pageCount, id: \.self) { pageIndex in
                                     createList(width: (reader.size.width - (Self.gridPadding * 2)), pageIndex: pageIndex)
-                                        .frame(width: (reader.size.width - (Self.gridPadding * 2)) * scaleFactor, height: pagesModel.pagesAspectRatio[pageIndex] * (reader.size.width - (Self.gridPadding * 2)) * scaleFactor)
+                                        .frame(width: (reader.size.width - (Self.gridPadding * 2)) * scaleFactor, height: pdfManager.pagesAspectRatio[pageIndex] * (reader.size.width - (Self.gridPadding * 2)) * scaleFactor)
                                         .overlay {
                                             GeometryReader { geometry in
                                                 Color.clear.preference(
