@@ -7,6 +7,7 @@
 
 import UIKit
 import PDFKit
+import SwiftUI
 
 final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
@@ -22,8 +23,12 @@ final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
             return
         }
         
-        session.pdfDoc = PDFDocument(url: url)
-        window.rootViewController = SplitViewController(scene: windowScene)
+        if let manager = PDFManager(url: url) {
+            session.pdfManager = manager
+            window.rootViewController = SplitViewController(scene: windowScene)
+        } else {
+            window.rootViewController = UIHostingController(rootView: ErrorOpeningPDFView())
+        }
         windowScene.title = url.lastPathComponent
         window.makeKeyAndVisible()
         self.window = window
@@ -34,9 +39,6 @@ final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
         // This occurs shortly after the scene enters the background, or when its session is discarded.
         // Release any resources associated with this scene that can be re-created the next time the scene connects.
         // The scene may re-connect later, as its session was not necessarily discarded (see `application:didDiscardSceneSessions` instead).
-        if let url = scene.session.url {
-            url.stopAccessingSecurityScopedResource()
-        }
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {
@@ -58,5 +60,26 @@ final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Called as the scene transitions from the foreground to the background.
         // Use this method to save data, release shared resources, and store enough scene-specific state information
         // to restore the scene back to its current state.
+    }
+}
+
+extension OpenedPDFSceneDelegate {
+    private struct ErrorOpeningPDFView: View {
+        var body: some View {
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                
+                Image(systemName: "info.circle")
+                    .font(.system(size: 60))
+                    .foregroundColor(.gray)
+                    .padding(.bottom, 10)
+                
+                Text("errorOpeningPDF")
+                    .bold()
+                    .padding(.bottom, 2)
+                
+                Spacer(minLength: 0)
+            }
+        }
     }
 }

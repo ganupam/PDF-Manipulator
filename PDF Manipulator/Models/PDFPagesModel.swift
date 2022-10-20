@@ -9,7 +9,7 @@ import Foundation
 import UIKit
 import PDFKit
 
-final class PDFPagesModel: ObservableObject {
+final class PDFManager {
     static let willInsertPages = Notification.Name("willInsertPages")
     static let willDeletePages = Notification.Name("willDeletePages")
     static let didRotatePage = Notification.Name("didRotatePage")
@@ -17,13 +17,148 @@ final class PDFPagesModel: ObservableObject {
     static let pagesIndicesKey = "pagesIndices"
     static let pagesWillInsertKey = "pagesWillInsert"
 
+    private var registeredObjects = [UUID : PDFPagesModel]()
+    
+    private var pdfDoc: PDFDocument
+    
+    let url: URL
+    
+    init?(url: URL) {
+        guard url.startAccessingSecurityScopedResource() else { return nil }
+                
+        guard let doc = PDFDocument(url: url) else { return nil }
+    
+        self.url = url
+        self.pdfDoc = doc
+    }
+    
+    deinit {
+        pdfDoc.documentURL?.stopAccessingSecurityScopedResource()
+    }
+    
+    var pageCount: Int {
+        self.pdfDoc.pageCount
+    }
+    
+    func page(at index: Int) -> PDFPage? {
+        self.pdfDoc.page(at: index)
+    }
+    
+    func getPDFPagesModel(identifier: UUID, displayScale: Double, enableLogging: Bool = false) -> PDFPagesModel {
+        let model = PDFPagesModel(pdf: pdfDoc, displayScale: displayScale, enableLogging: enableLogging)
+        registeredObjects[identifier] = model
+        return model
+    }
+    
+    private func model(with identifier: UUID) -> PDFPagesModel {
+        guard let model = self.registeredObjects[identifier] else {
+            preconditionFailure("Model with specified identifier not found.")
+        }
+        
+        return model
+    }
+    
+    func changeWidth(to width: Double, identifier: UUID) {
+        self.model(with: identifier).changeWidth(width)
+    }
+    
+    func fetchThumbnail(pageIndex: Int, identifier: UUID) {
+        self.model(with: identifier).fetchThumbnail(pageIndex: pageIndex)
+    }
+    
+    @inline(__always) func appendPages(_ pages: [PDFPage]) {
+        self.insertPages(pages, at: self.pdfDoc.pageCount)
+    }
+    
+    func insertPages(_ pages: [PDFPage], at index: Int) {
+        guard index <= self.pdfDoc.pageCount else { return }
+        
+        let newPageIndices = (index ..< index + pages.count).map { $0 }
+        NotificationCenter.default.post(name: PDFManager.willInsertPages, object: self, userInfo: [PDFManager.pagesIndicesKey : newPageIndices, PDFManager.pagesWillInsertKey : pages])
+        
+        pages.enumerated().forEach {
+            let (i, page) = $0
+            self.pdfDoc.insert(page, at: newPageIndices[i])
+        }
+
+        self.registeredObjects.values.forEach { model in
+            model.insertPages(pages, at: newPageIndices)
+        }
+    }
+    
+    @inline(__always) func rotateLeft(_ index: Int) {
+        self.rotateLeft([index])
+    }
+    
+    @inline(__always) func rotateRight(_ index: Int) {
+        self.rotateRight([index])
+    }
+
+    @inline(__always) func rotateLeft(_ indices: [Int]) {
+        self.rotate(indices, angle: -90)
+    }
+    
+    @inline(__always) func rotateRight(_ indices: [Int]) {
+        self.rotate(indices, angle: 90)
+    }
+    
+    @inline(__always) private func rotate(_ indices: [Int], angle: Int) {
+        for index in indices {
+            guard let page = self.pdfDoc.page(at: index) else { continue }
+            
+            page.rotation += angle
+        }
+        
+        self.registeredObjects.values.forEach { model in
+            model.rotate(indices, angle: angle)
+        }
+        
+        NotificationCenter.default.post(name: PDFManager.didRotatePage, object: self, userInfo: [PDFManager.pagesIndicesKey : indices])
+    }
+    
+    @inline(__always) func delete(_ index: Int) {
+        self.delete([index])
+    }
+    
+    func delete(_ indices: [Int]) {
+        let indices = indices.sorted().reversed()
+        
+        guard (indices.allSatisfy { $0 < self.pdfDoc.pageCount }) else { return }
+        
+        NotificationCenter.default.post(name: PDFManager.willDeletePages, object: self, userInfo: [PDFManager.pagesIndicesKey : Array(indices)])
+
+        indices.forEach {
+            self.pdfDoc.removePage(at: $0)
+        }
+
+        self.registeredObjects.values.forEach { model in
+            model.delete(Array(indices))
+        }
+    }
+    
+    func exchangeImages(index1: Int, index2: Int, identifier: UUID) {
+        self.model(with: identifier).exchangeImages(index1: index1, index2: index2)
+    }
+    
+    func exchangePages(index1: Int, index2: Int, excludePageModelWithIdentifier: UUID) {
+        self.pdfDoc.exchangePage(at: index1, withPageAt: index2)
+        
+        for identifier in self.registeredObjects.keys where identifier != excludePageModelWithIdentifier {
+            self.registeredObjects[identifier]?.exchangeImages(index1: index1, index2: index2)
+        }
+        
+        NotificationCenter.default.post(name: PDFManager.didExchangePages, object: self, userInfo: [PDFManager.pagesIndicesKey : [index1, index2]])
+    }
+}
+
+final class PDFPagesModel: ObservableObject {
     private let queue = DispatchQueue(label: Bundle.main.bundleIdentifier! + ".pdfgenerator", qos: .userInitiated, attributes: .concurrent)
     
     private enum ImageGenerationState {
         case notStarted, inProgress, ready
     }
     
-    let pdf: PDFDocument
+    fileprivate var pdf: PDFDocument
     let displayScale: Double
     let enableLogging: Bool
     
@@ -32,7 +167,7 @@ final class PDFPagesModel: ObservableObject {
     private(set) var pagesAspectRatio: [Double]
     private var currentWidth = 0.0
     
-    init(pdf: PDFDocument, displayScale: Double, enableLogging: Bool = false) {
+    fileprivate init(pdf: PDFDocument, displayScale: Double, enableLogging: Bool = false) {
         self.pdf = pdf
         self.displayScale = displayScale
         self.enableLogging = enableLogging
@@ -49,14 +184,9 @@ final class PDFPagesModel: ObservableObject {
             let rotationAngle = page.rotation
             self.pagesAspectRatio[i] = ((rotationAngle % 180) == 0) ? (size.height / size.width) : (size.width / size.height)
         }
-        
-        NotificationCenter.default.addObserver(self, selector: #selector(willInsertPages), name: Self.willInsertPages, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(willDeletePages), name: Self.willDeletePages, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(didRotatePage), name: Self.didRotatePage, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(didExchangePages), name: Self.didExchangePages, object: nil)
     }
     
-    func changeWidth(_ width: Double) {
+    fileprivate func changeWidth(_ width: Double) {
         DispatchQueue.main.async {
             guard self.currentWidth != width else { return}
             
@@ -71,7 +201,7 @@ final class PDFPagesModel: ObservableObject {
         }
     }
     
-    func fetchThumbnail(pageIndex: Int) {
+    fileprivate func fetchThumbnail(pageIndex: Int) {
         guard self.currentWidth > 0 else { return }
         
         for i in (pageIndex ..< min(pageIndex + 3, pdf.pageCount)) {
@@ -82,7 +212,7 @@ final class PDFPagesModel: ObservableObject {
             self.queue.async {
                 let img = self.createThumbnail(pageIndex: i)
                 
-                DispatchQueue.main.sync {
+                DispatchQueue.main.async {
                     self.imageGenerationState[i] = .ready
                     self.images[i] = img
                 }
@@ -107,115 +237,28 @@ final class PDFPagesModel: ObservableObject {
         return UIImage(cgImage: imgCGImage, scale: self.displayScale, orientation: .up)
     }
     
-    func appendPages(_ pages: [PDFPage]) {
-        self.insertPages(pages, at: self.pdf.pageCount)
-    }
-    
-    func insertPages(_ pages: [PDFPage], at index: Int) {
-        guard index <= self.pdf.pageCount else { return }
-        
-        let newPageIndices = (index ..< index + pages.count).map { $0 }
-        NotificationCenter.default.post(name: Self.willInsertPages, object: self, userInfo: [Self.pagesIndicesKey : newPageIndices, Self.pagesWillInsertKey : pages])
-        
-        pages.enumerated().forEach {
-            let (i, page) = $0
-            pdf.insert(page, at: newPageIndices[i])
-        }
-
-        self.updateInternalStateAfterInsertion(pages, indices: newPageIndices)
-    }
-    
-    private func updateInternalStateAfterInsertion(_ pages: [PDFPage], indices: [Int]) {
-        guard pages.count == indices.count else { return }
-        
+    fileprivate func insertPages(_ pages: [PDFPage], at newPageIndices: [Int]) {
         pages.enumerated().forEach {
             let (i, page) = $0
             let size = page.bounds(for: .mediaBox)
-            self.pagesAspectRatio.insert(size.height / size.width, at: indices[i])
-            self.imageGenerationState.insert(.notStarted, at: indices[i])
-            self.images.insert(nil, at: indices[i])
-        }
-    }
-    
-    @objc private func willInsertPages(_ notification: NSNotification) {
-        guard let otherPDFPagesModel = notification.object as? Self, otherPDFPagesModel !== self, otherPDFPagesModel.pdf.documentURL == self.pdf.documentURL else { return }
-        
-        guard let pages = notification.userInfo?[Self.pagesWillInsertKey] as? [PDFPage], let indices = notification.userInfo?[Self.pagesIndicesKey] as? [Int] else { return }
-        
-        self.updateInternalStateAfterInsertion(pages, indices: indices)
-    }
-    
-    @objc private func willDeletePages(_ notification: NSNotification) {
-        guard let otherPDFPagesModel = notification.object as? Self, otherPDFPagesModel !== self, otherPDFPagesModel.pdf.documentURL == self.pdf.documentURL else { return }
-        
-        guard let indices = notification.userInfo?[Self.pagesIndicesKey] as? [Int] else { return }
-        
-        self.updateInternalStateAfterDeletion(indices)
-    }
-    
-    @objc private func didRotatePage(_ notification: NSNotification) {
-        guard let otherPDFPagesModel = notification.object as? Self, otherPDFPagesModel !== self, otherPDFPagesModel.pdf.documentURL == self.pdf.documentURL else { return }
-        
-        guard let indices = notification.userInfo?[Self.pagesIndicesKey] as? [Int] else { return }
-        
-        for index in indices {
-            self.updateInternalStateAfterRotation(index)
+            self.pagesAspectRatio.insert(((page.rotation % 180) == 0) ? (size.height / size.width) : (size.width / size.height), at: newPageIndices[i])
+            self.imageGenerationState.insert(.notStarted, at: newPageIndices[i])
+            self.images.insert(nil, at: newPageIndices[i])
         }
     }
 
-    @objc private func didExchangePages(_ notification: NSNotification) {
-        guard let otherPDFPagesModel = notification.object as? Self, otherPDFPagesModel !== self, otherPDFPagesModel.pdf.documentURL == self.pdf.documentURL else { return }
-        
-        guard let indices = notification.userInfo?[Self.pagesIndicesKey] as? [Int], indices.count == 2 else { return }
-        
-        self.exchangeImages(index1: indices[0], index2: indices[1])
-    }
-
-    @inline(__always) func rotateLeft(_ index: Int) {
-        self.rotateLeft([index])
-    }
-    
-    @inline(__always) func rotateRight(_ index: Int) {
-        self.rotateRight([index])
-    }
-
-    @inline(__always) func rotateLeft(_ indices: [Int]) {
-        self.rotate(indices, angle: -90)
-    }
-    
-    @inline(__always) func rotateRight(_ indices: [Int]) {
-        self.rotate(indices, angle: 90)
-    }
-    
-    private func rotate(_ indices: [Int], angle: Int) {
+    fileprivate func rotate(_ indices: [Int], angle: Int) {
         for index in indices {
             guard let page = self.pdf.page(at: index) else { continue }
             
-            page.rotation += angle
-            self.updateInternalStateAfterRotation(index)
+            let size = page.bounds(for: .mediaBox).size
+            self.pagesAspectRatio[index] = ((page.rotation % 180) == 0) ? (size.height / size.width) : (size.width / size.height)
+            self.imageGenerationState[index] = .notStarted
+            self.images[index] = nil
         }
-        
-        NotificationCenter.default.post(name: Self.didRotatePage, object: self, userInfo: [Self.pagesIndicesKey : indices])
     }
     
-    func delete(_ index: Int) {
-        self.delete([index])
-    }
-    
-    func delete(_ indices: [Int]) {
-        let indices = indices.sorted().reversed()
-        
-        guard (indices.allSatisfy { $0 < self.pdf.pageCount }) else { return }
-        
-        NotificationCenter.default.post(name: Self.willDeletePages, object: self, userInfo: [Self.pagesIndicesKey : Array(indices)])
-
-        indices.forEach {
-            self.pdf.removePage(at: $0)
-        }
-        self.updateInternalStateAfterDeletion(Array(indices))
-    }
-    
-    private func updateInternalStateAfterDeletion(_ indices: [Int]) {
+    fileprivate func delete(_ indices: [Int]) {
         indices.forEach {
             self.pagesAspectRatio.remove(at: $0)
             self.imageGenerationState.remove(at: $0)
@@ -223,16 +266,7 @@ final class PDFPagesModel: ObservableObject {
         }
     }
     
-    private func updateInternalStateAfterRotation(_ index: Int) {
-        guard let page = self.pdf.page(at: index) else { return }
-        
-        let size = page.bounds(for: .mediaBox).size
-        self.pagesAspectRatio[index] = ((page.rotation % 180) == 0) ? (size.height / size.width) : (size.width / size.height)
-        self.imageGenerationState[index] = .notStarted
-        self.images[index] = nil
-    }
-    
-    func exchangeImages(index1: Int, index2: Int) {
+    fileprivate func exchangeImages(index1: Int, index2: Int) {
         let aspectRatio = self.pagesAspectRatio[index1]
         self.pagesAspectRatio[index1] = self.pagesAspectRatio[index2]
         self.pagesAspectRatio[index2] = aspectRatio
@@ -240,11 +274,5 @@ final class PDFPagesModel: ObservableObject {
         let img = self.images[index1]
         self.images[index1] = self.images[index2]
         self.images[index2] = img
-    }
-    
-    func exchangePages(index1: Int, index2: Int) {
-        self.pdf.exchangePage(at: index1, withPageAt: index2)
-        
-        NotificationCenter.default.post(name: Self.didExchangePages, object: self, userInfo: [Self.pagesIndicesKey : [index1, index2]])
     }
 }

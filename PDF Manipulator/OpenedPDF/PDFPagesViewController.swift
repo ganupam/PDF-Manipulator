@@ -11,17 +11,18 @@ import PDFKit
 import QuickLook
 
 final class PDFPagesViewController: UIHostingController<PDFPagesViewController.OuterPDFMainView> {
-    let pdfDoc: PDFDocument
+    let pdfManager: PDFManager
     let scene: UIWindowScene
+    
     private var presentationManager: PresentationManager?
     
-    init(pdfDoc: PDFDocument, scene: UIWindowScene) {
-        self.pdfDoc = pdfDoc
+    init(pdfManager: PDFManager, scene: UIWindowScene) {
+        self.pdfManager = pdfManager
         self.scene = scene
         
-        super.init(rootView: OuterPDFMainView(pdfDoc: pdfDoc, scene: scene, pdfPagesVC: nil))
+        super.init(rootView: OuterPDFMainView(pdfManager: pdfManager, scene: scene, pdfPagesVC: nil))
         
-        self.rootView = OuterPDFMainView(pdfDoc: pdfDoc, scene: scene, pdfPagesVC: self)        
+        self.rootView = OuterPDFMainView(pdfManager: pdfManager, scene: scene, pdfPagesVC: self)
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -29,7 +30,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
     }
     
     fileprivate func showSidebar(presentSideBarInteractively: Bool) {
-        let thumbnailVC = PDFThumbnailsViewController(pdfDoc: pdfDoc, scene: scene)
+        let thumbnailVC = PDFThumbnailsViewController(pdfManager: pdfManager, scene: scene)
         thumbnailVC.modalPresentationStyle = .custom
         self.presentationManager = PresentationManager(presentInteractively: presentSideBarInteractively)
         thumbnailVC.transitioningDelegate = self.presentationManager
@@ -81,19 +82,19 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
     }
 
     struct OuterPDFMainView: View {
-        let pdfDoc: PDFDocument
+        let pdfManager: PDFManager
         let scene: UIWindowScene
         unowned let pdfPagesVC: PDFPagesViewController!
         
         var body: some View {
-            PDFMainView(pdfDoc: pdfDoc, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
+            PDFMainView(pdfManager: pdfManager, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
                 .environment(\.windowScene, scene)
                 .environment(\.parentViewController, pdfPagesVC)
         }
     }
     
     private struct PDFMainView: View {
-        let pdfDoc: PDFDocument
+        let pdfManager: PDFManager
 
         @StateObject private var pagesModel: PDFPagesModel
         @Environment(\.windowScene) private var scene
@@ -102,15 +103,18 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         @State private var hidePrimaryColumn = true
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
         @Environment(\.parentViewController) private var parentViewController
+        @State private var identifier: UUID
         @State private var scaleFactor = 1.0
         @State private var previousScaleFactor = 1.0
 
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
-
-        init(pdfDoc: PDFDocument, displayScale: Double) {
-            self.pdfDoc = pdfDoc
-            let pdfPagesModel = PDFPagesModel(pdf: pdfDoc, displayScale: displayScale)
+        
+        init(pdfManager: PDFManager, displayScale: Double) {
+            self.pdfManager = pdfManager
+            let uuid = UUID()
+            _identifier = State(initialValue: uuid)
+            let pdfPagesModel = pdfManager.getPDFPagesModel(identifier: uuid, displayScale: displayScale)
             _pagesModel = StateObject(wrappedValue: pdfPagesModel)
         }
         
@@ -126,7 +130,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                     ScrollViewReader { scrollReader in
                         ScrollView(scaleFactor == 1.0 ? .vertical : [.horizontal, .vertical], showsIndicators: scaleFactor == 1.0) {
                             LazyVStack(spacing: Self.verticalSpacing) {
-                                ForEach(0 ..< pdfDoc.pageCount, id: \.self) { pageIndex in
+                                ForEach(0 ..< pdfManager.pageCount, id: \.self) { pageIndex in
                                     createList(width: (reader.size.width - (Self.gridPadding * 2)), pageIndex: pageIndex)
                                         .frame(width: (reader.size.width - (Self.gridPadding * 2)) * scaleFactor, height: pagesModel.pagesAspectRatio[pageIndex] * (reader.size.width - (Self.gridPadding * 2)) * scaleFactor)
                                         .overlay {
@@ -141,7 +145,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                                             guard !disablePostingActivePageIndexNotification, $0.y > 0 && $0.y < reader.size.height / 2 && activePageIndex != pageIndex else { return }
 
                                             activePageIndex = pageIndex
-                                            NotificationCenter.default.post(name: Common.activePageChangedNotification, object: pagesModel, userInfo: [Common.activePageIndexKey : activePageIndex])
+                                            NotificationCenter.default.post(name: Common.activePageChangedNotification, object: identifier, userInfo: [Common.activePageIndexKey : activePageIndex, Common.pdfURLKey : self.pdfManager.url])
                                         }
                                         .id(pageIndex)
                                 }
@@ -154,7 +158,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                             previousScaleFactor = scaleFactor
                         })
                         .onReceive(NotificationCenter.default.publisher(for: Common.activePageChangedNotification)) { notification in
-                            guard let pagesModel = notification.object as? PDFPagesModel, pagesModel !== self.pagesModel, pagesModel.pdf.documentURL == pdfDoc.documentURL, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
+                            guard notification.object as? UUID != self.identifier, notification.userInfo?[Common.pdfURLKey] as? URL == self.pdfManager.url, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
 
                             disablePostingActivePageIndexNotification = true
                             withAnimation(.linear(duration: 0.1)) {
@@ -169,7 +173,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                     .background(.gray)
                 }
             }
-            .navigationTitle("\(pdfDoc.documentURL?.lastPathComponent ?? "")")
+            .navigationTitle("\(pdfManager.url.lastPathComponent)")
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarLeading) {
                     if !(horizontalSizeClass == .compact || UIDevice.current.userInterfaceIdiom == .phone) {
@@ -213,21 +217,25 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         }
         
         private func createList(width: Double, pageIndex: Int) -> some View {
-            pagesModel.changeWidth(width)
+            pdfManager.changeWidth(to: width, identifier: self.identifier)
             
-            return Thumbnail(pagesModel: pagesModel, pageIndex: pageIndex)
+            return Thumbnail(pdfManager: pdfManager, pagesModel: pagesModel, pageIndex: pageIndex, identifier: self.identifier)
                 .border(.black, width: 0.5)
         }
         
         private struct Thumbnail: View {
-            @StateObject private var pagesModel: PDFPagesModel
+            let pdfManager: PDFManager
+            @ObservedObject private var pagesModel: PDFPagesModel
             let pageIndex: Int
-            
-            init(pagesModel: PDFPagesModel, pageIndex: Int) {
-                _pagesModel = StateObject(wrappedValue: pagesModel)
+            let identifier: UUID
+
+            init(pdfManager: PDFManager, pagesModel: PDFPagesModel, pageIndex: Int, identifier: UUID) {
+                self.pdfManager = pdfManager
+                _pagesModel = ObservedObject(wrappedValue: pagesModel)
                 self.pageIndex = pageIndex
+                self.identifier = identifier
                 
-                pagesModel.fetchThumbnail(pageIndex: pageIndex)
+                pdfManager.fetchThumbnail(pageIndex: pageIndex, identifier: identifier)
             }
             
             var body: some View {
@@ -251,7 +259,7 @@ extension PDFPagesViewController: QLPreviewControllerDataSource {
     }
     
     func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
-        self.pdfDoc.documentURL! as NSURL
+        self.pdfManager.url as NSURL
     }
     
     func showQuickLookVC() {

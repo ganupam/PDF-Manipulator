@@ -129,26 +129,19 @@ extension UISceneSession {
         return url
     }
     
-    private static var pdfDocKey = "pdfDocKey"
-    var pdfDoc: PDFDocument? {
+    private static var pdfManagerKey = "pdfManagerKey"
+    var pdfManager: PDFManager? {
         get {
             guard self.configuration.name == .openedPDFConfigurationName else { return nil }
             
-            return objc_getAssociatedObject(self, &Self.pdfDocKey) as? PDFDocument
+            return objc_getAssociatedObject(self, &Self.pdfManagerKey) as? PDFManager
         }
         
         set {
             guard self.configuration.name == .openedPDFConfigurationName else { return }
             
-            objc_setAssociatedObject(self, &Self.pdfDocKey, newValue, .OBJC_ASSOCIATION_RETAIN)
+            objc_setAssociatedObject(self, &Self.pdfManagerKey, newValue, .OBJC_ASSOCIATION_RETAIN)
         }
-    }
-    
-    func addPages(_ pages: [PDFPage]) {
-        guard self.configuration.name == .openedPDFConfigurationName, let doc = self.pdfDoc else { return }
-        
-        let pagesModel = PDFPagesModel(pdf: doc, displayScale: 1)
-        pagesModel.insertPages(pages, at: doc.pageCount)
     }
 }
 
@@ -160,7 +153,7 @@ extension Double {
 
 extension UIApplication {
     class func openPDF(_ url: URL, requestingScene: UIWindowScene) {
-        guard url.startAccessingSecurityScopedResource(), let bookmarkData = try? url.bookmarkData(options: .minimalBookmark) else {
+        guard let bookmarkData = try? url.bookmarkData(options: .minimalBookmark) else {
             UIAlertController.show(message: NSLocalizedString("unableToOpen", comment: ""), scene: requestingScene)
             return
         }
@@ -183,12 +176,11 @@ extension UIApplication {
             UIApplication.shared.requestSceneSessionActivation(session, userActivity: userActivity, options: activationOptions)
             RecentlyOpenFilesManager.sharedInstance.addURL(url)
         } else {
-            guard let pdf = PDFDocument(url: url), let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
-                url.stopAccessingSecurityScopedResource()
+            guard let pdfManager = PDFManager(url: url), let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
                 return
             }
             
-            let vc = PDFPagesViewController(pdfDoc: pdf, scene: scene)
+            let vc = PDFPagesViewController(pdfManager: pdfManager, scene: scene)
             let navVC = (scene.keyWindow?.rootViewController as? UINavigationController)
             navVC?.popToRootViewController(animated: false)
             navVC?.pushViewController(vc, animated: true)

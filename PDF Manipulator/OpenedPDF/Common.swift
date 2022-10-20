@@ -10,5 +10,6 @@ import Foundation
 struct Common {
     static let activePageChangedNotification = Notification.Name("activePageChanged")
     static let activePageIndexKey = "activePageIndex"
+    static let pdfURLKey = "pdfURL"
 }
 

@@ -26,3 +26,4 @@
 "addPagesToExistingPDF" = "Add page(s) to existing PDF";
 "addSelectedPagesToRecentFiles" = "Add selected page(s) to recently opened files";
 "addPagesToRecentFiles" = "Add page(s) to recently opened files";
+"errorOpeningPDF" = "Error opening PDF";

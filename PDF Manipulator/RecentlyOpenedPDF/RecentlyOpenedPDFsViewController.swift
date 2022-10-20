@@ -156,7 +156,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                             .frame(width: thumbnails[url] == nil ? Self.thumbnailHeight : nil, height: Self.thumbnailHeight)
                                             .border(.gray, width: 0.5)
                                             .onDrag {
-                                                let itemProvider = NSItemProvider(contentsOf: url)!
+                                                let itemProvider = NSItemProvider(item: url as NSURL, typeIdentifier: UTType.pdf.identifier)// NSItemProvider(contentsOf: url)!
                                                 
                                                 // Support for drag-drop to create new window scene.
                                                 let activity = NSUserActivity(activityType: .openPDFUserActivityType)

@@ -13,14 +13,14 @@ import UniformTypeIdentifiers
 final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewController.OuterPDFThumbnailView> {
     private static let supportedDroppedItemProviders = [UTType.pdf, UTType.jpeg, UTType.gif, UTType.bmp, UTType.png, UTType.tiff]
     
-    let pdfDoc: PDFDocument
+    let pdfManager: PDFManager
     let scene: UIWindowScene
     
-    init(pdfDoc: PDFDocument, scene: UIWindowScene) {
-        self.pdfDoc = pdfDoc
+    init(pdfManager: PDFManager, scene: UIWindowScene) {
+        self.pdfManager = pdfManager
         self.scene = scene
         
-        super.init(rootView: OuterPDFThumbnailView(pdfDoc: pdfDoc, scene: scene))
+        super.init(rootView: OuterPDFThumbnailView(pdfManager: pdfManager, scene: scene))
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -30,17 +30,17 @@ final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewCo
 
 extension PDFThumbnailsViewController {
     struct OuterPDFThumbnailView: View {
-        let pdfDoc: PDFDocument
+        let pdfManager: PDFManager
         let scene: UIWindowScene
         
         var body: some View {
-            PDFThumbnails(pdfDoc: pdfDoc, scene: scene)
+            PDFThumbnails(pdfManager: pdfManager, scene: scene)
                 .environment(\.windowScene, scene)
         }
     }
     
     struct PDFThumbnails: View {
-        let pdfDoc: PDFDocument
+        let pdfManager: PDFManager
         let scene: UIWindowScene
         @State private var isSelected: [Bool]
         @StateObject private var pagesModel: PDFPagesModel
@@ -51,20 +51,23 @@ extension PDFThumbnailsViewController {
         @State private var activePageIndex = 0
         @State private var inSelectionMode = false
         @State private var pdfToExport: URL?
+        @State private var identifier: UUID
         
         private static let horizontalSpacing = 10.0
         private static let verticalSpacing = 15.0
         private static let gridPadding = 15.0
         
-        init(pdfDoc: PDFDocument, scene: UIWindowScene) {
-            self.pdfDoc = pdfDoc
+        init(pdfManager: PDFManager, scene: UIWindowScene) {
+            self.pdfManager = pdfManager
             self.scene = scene
-            _isSelected = State(initialValue: Array(repeating: false, count: pdfDoc.pageCount))
-            let pdfPagesModel = PDFPagesModel(pdf: pdfDoc, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
+            let identifier = UUID()
+            _identifier = State(initialValue: identifier)
+            _isSelected = State(initialValue: Array(repeating: false, count: pdfManager.pageCount))
+            let pdfPagesModel = pdfManager.getPDFPagesModel(identifier: identifier, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
             _pagesModel = StateObject(wrappedValue: pdfPagesModel)
             
             var IDs = [UUID]()
-            for _ in 0 ..< pdfDoc.pageCount {
+            for _ in 0 ..< pdfManager.pageCount {
                 IDs.append(UUID())
             }
             _pageIDs = State(initialValue: IDs)
@@ -72,14 +75,14 @@ extension PDFThumbnailsViewController {
         
         private func dragItemProvider(pageIndex: Int) -> NSItemProvider {
             let itemProvider = NSItemProvider()
-            itemProvider.suggestedName = self.pdfDoc.documentURL?.lastPathComponent
+            itemProvider.suggestedName = self.pdfManager.url.lastPathComponent
             itemProvider.registerItem(forTypeIdentifier: UTType.pdf.identifier) { completionHandler, classType, dict in
-                guard completionHandler != nil, let pdfName = self.pdfDoc.documentURL?.lastPathComponent, let page = self.pdfDoc.page(at: pageIndex)?.dataRepresentation else {
+                guard completionHandler != nil, let page = self.pdfManager.page(at: pageIndex)?.dataRepresentation else {
                     completionHandler?(nil, NSError(domain: "", code: 1))
                     return
                 }
                 
-                let pdfPath = FileManager.default.temporaryDirectory.appendingPathComponent(pdfName)
+                let pdfPath = FileManager.default.temporaryDirectory.appendingPathComponent(self.pdfManager.url.lastPathComponent)
                 
                 do {
                     try page.write(to: pdfPath)
@@ -152,7 +155,7 @@ extension PDFThumbnailsViewController {
         
         private func copyPagesSubmenu(pageIndices: [Int]) -> some View {
             let recentlyOpenedURLs = RecentlyOpenFilesManager.sharedInstance.urls.filter { url in
-                url != self.pdfDoc.documentURL
+                url != self.pdfManager.url
             }.prefix(5)
             
             return Group {
@@ -225,7 +228,7 @@ extension PDFThumbnailsViewController {
                         }
                         .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ScrollViewDropDelegate(pageIndex:pagesModel.images.count, internalDragPageIndex: $internalDragPageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
                         .onReceive(NotificationCenter.default.publisher(for: Common.activePageChangedNotification)) { notification in
-                            guard let pagesModel = notification.object as? PDFPagesModel, pagesModel !== self.pagesModel, pagesModel.pdf.documentURL == pdfDoc.documentURL, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
+                            guard notification.object as? UUID != self.identifier, notification.userInfo?[Common.pdfURLKey] as? URL == self.pdfManager.url, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
 
                             withAnimation(.linear(duration: 0.1)) {
                                 scrollReader.scrollTo(pageIDs[pageIndex])
@@ -235,21 +238,21 @@ extension PDFThumbnailsViewController {
                     }
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: PDFPagesModel.willInsertPages)) { notification in
-                guard (notification.object as? PDFPagesModel)?.pdf.documentURL == pdfDoc.documentURL else { return }
-                
-                guard let indices = notification.userInfo?[PDFPagesModel.pagesIndicesKey] as? [Int] else { return }
-                
+            .onReceive(NotificationCenter.default.publisher(for: PDFManager.willInsertPages)) { notification in
+                guard (notification.object as? PDFManager)?.url == pdfManager.url else { return }
+
+                guard let indices = notification.userInfo?[PDFManager.pagesIndicesKey] as? [Int] else { return }
+
                 for index in indices {
                     isSelected.insert(false, at: index)
                     pageIDs.insert(UUID(), at: index)
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: PDFPagesModel.willDeletePages)) { notification in
-                guard (notification.object as? PDFPagesModel)?.pdf.documentURL == pdfDoc.documentURL else { return }
+            .onReceive(NotificationCenter.default.publisher(for: PDFManager.willDeletePages)) { notification in
+                guard (notification.object as? PDFManager)?.url == pdfManager.url else { return }
 
-                guard let indices = notification.userInfo?[PDFPagesModel.pagesIndicesKey] as? [Int] else { return }
-                
+                guard let indices = notification.userInfo?[PDFManager.pagesIndicesKey] as? [Int] else { return }
+
                 for index in indices {
                     isSelected.remove(at: index)
                     pageIDs.remove(at: index)
@@ -264,21 +267,21 @@ extension PDFThumbnailsViewController {
                             Image(systemName: "doc.badge.plus")
                         }
                         .disabled(isSelected.firstIndex(of: true) == nil)
-                        
+
                         Button {
-                            pagesModel.rotateLeft(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
+                            pdfManager.rotateLeft(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
                         } label: {
                             Image(systemName: "rotate.left")
                         }
                         .disabled(isSelected.firstIndex(of: true) == nil)
-                        
+
                         Button {
-                            pagesModel.rotateRight(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
+                            pdfManager.rotateRight(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil } )
                         } label: {
                             Image(systemName: "rotate.right")
                         }
                         .disabled(isSelected.firstIndex(of: true) == nil)
-                        
+
                         Button {
                             self.deletePagesWithConfirmation(isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil })
                         } label: {
@@ -293,12 +296,11 @@ extension PDFThumbnailsViewController {
             .sheet(isPresented: .constant(pdfToExport != nil)) {
                 FilePickerView(operationMode: .export(urlsToExport: [pdfToExport!])) { url in
                     try? FileManager.default.removeItem(at: pdfToExport!)
-                    
+
                     pdfToExport = nil
-                    
-                    
+
                     guard let url else { return }
-                    
+
                     func openPDF() {
                         for i in 0 ..< isSelected.count {
                             isSelected[i] = false
@@ -306,10 +308,10 @@ extension PDFThumbnailsViewController {
                         withAnimation {
                             inSelectionMode = false
                         }
-                        
+
                         UIApplication.openPDF(url, requestingScene: self.scene)
                     }
-                    
+
                     if vcShownAsSideBar {
                         self.dismissSideBar(completion: openPDF)
                     } else {
@@ -322,7 +324,7 @@ extension PDFThumbnailsViewController {
         private func deletePagesWithConfirmation(_ indices: [Int]) {
             let alert = UIAlertController(title: nil, message: String(format: NSLocalizedString("deletePagesConfirmationTitle", comment: ""), indices.count), preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: NSLocalizedString("generalDelete", comment: ""), style: .destructive) { _ in
-                pagesModel.delete(indices)
+                pdfManager.delete(indices)
             })
             alert.addAction(UIAlertAction(title: NSLocalizedString("generalCancel", comment: ""), style: .cancel))
             var VC = scene.keyWindow?.rootViewController
@@ -337,7 +339,7 @@ extension PDFThumbnailsViewController {
             
             var insertionIndex = 0
             pageIndices.forEach {
-                guard let page = self.pdfDoc.page(at: $0) else {
+                guard let page = self.pdfManager.page(at: $0) else {
                     return
                 }
                 
@@ -345,7 +347,7 @@ extension PDFThumbnailsViewController {
                 insertionIndex += 1
             }
             
-            let filename = self.pdfDoc.documentURL!.deletingPathExtension().lastPathComponent
+            let filename = self.pdfManager.url.deletingPathExtension().lastPathComponent
             let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename).appendingPathExtension("pdf")
             
             guard pdf.write(to: url) else {
@@ -383,7 +385,7 @@ extension PDFThumbnailsViewController {
             }
             
             group.notify(queue: .main) {
-                self.pagesModel.insertPages(pages, at: externalDropFakePageIndex ?? 0)
+                self.pdfManager.insertPages(pages, at: externalDropFakePageIndex ?? 0)
                 self.externalDropFakePageIndex = nil
                 
                 urls.forEach {
@@ -421,7 +423,7 @@ extension PDFThumbnailsViewController {
             Group {
                 Section {
                     Button {
-                        pagesModel.rotateLeft(adjustedPageIndex)
+                        pdfManager.rotateLeft(adjustedPageIndex)
                     } label: {
                         Label {
                             Text("pageRotateLeft")
@@ -431,7 +433,7 @@ extension PDFThumbnailsViewController {
                     }
                     
                     Button {
-                        pagesModel.rotateRight(adjustedPageIndex)
+                        pdfManager.rotateRight(adjustedPageIndex)
                     } label: {
                         Label {
                             Text("pageRotateRight")
@@ -458,7 +460,7 @@ extension PDFThumbnailsViewController {
         }
         
         private func createThumbnail(width: Double, pageIndex: Int) -> some View {
-            pagesModel.changeWidth(width)
+            pdfManager.changeWidth(to: width, identifier: self.identifier)
             
             var adjustedPageIndex = pageIndex
             if let externalDropFakePageIndex, pageIndex > externalDropFakePageIndex {
@@ -468,11 +470,11 @@ extension PDFThumbnailsViewController {
             return VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 
-                Thumbnail(pagesModel: pagesModel, pageIndex: adjustedPageIndex, tapped: {
+                Thumbnail(pdfManager: pdfManager, pagesModel: pagesModel, pageIndex: adjustedPageIndex, identifier: self.identifier, tapped: {
                     withAnimation(.linear(duration: 0.1)) {
                         if !inSelectionMode {
                             activePageIndex = adjustedPageIndex
-                            NotificationCenter.default.post(name: Common.activePageChangedNotification, object: pagesModel, userInfo: [Common.activePageIndexKey : activePageIndex])
+                            NotificationCenter.default.post(name: Common.activePageChangedNotification, object: self.identifier, userInfo: [Common.activePageIndexKey : activePageIndex, Common.pdfURLKey : self.pdfManager.url])
                         } else {
                             isSelected[adjustedPageIndex].toggle()
                         }
@@ -498,14 +500,14 @@ extension PDFThumbnailsViewController {
                     internalDragPageIndex = adjustedPageIndex
                     return dragItemProvider(pageIndex: adjustedPageIndex)
                 }, preview: {
-                    Thumbnail(pagesModel: pagesModel, pageIndex: adjustedPageIndex, tapped: {})
+                    Thumbnail(pdfManager: pdfManager, pagesModel: pagesModel, pageIndex: adjustedPageIndex, identifier: self.identifier, tapped: {})
                         .border(.black, width: 0.5)
                         .frame(height: pagesModel.pagesAspectRatio[adjustedPageIndex] * width)
                 })
                 .contextMenus(menuItems: {
                     menu(adjustedPageIndex: adjustedPageIndex)
                 }, preview: {
-                    Thumbnail(pagesModel: pagesModel, pageIndex: adjustedPageIndex, tapped: {})
+                    Thumbnail(pdfManager: pdfManager, pagesModel: pagesModel, pageIndex: adjustedPageIndex, identifier: self.identifier, tapped: {})
                         .frame(height: pagesModel.pagesAspectRatio[adjustedPageIndex] * width)
                 })
                 .padding(.horizontal, 5)
@@ -526,20 +528,24 @@ extension PDFThumbnailsViewController {
                     .padding(.top, 5)
             }
             .opacity(adjustedPageIndex == currentInternalDropPageIndex ? 0.01 : 1)
-            .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ThumbnailDropDelegate(pagesModel: pagesModel, pageIndex: pageIndex, internalDragPageIndex: $internalDragPageIndex, currentInternalDropPageIndex: $currentInternalDropPageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
+            .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ThumbnailDropDelegate(pdfManager: pdfManager, pageIndex: pageIndex, identifier: self.identifier, internalDragPageIndex: $internalDragPageIndex, currentInternalDropPageIndex: $currentInternalDropPageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
         }
         
         private struct Thumbnail: View {
-            @StateObject private var pagesModel: PDFPagesModel
+            let pdfManager: PDFManager
+            @ObservedObject private var pagesModel: PDFPagesModel
             let pageIndex: Int
+            let identifier: UUID
             let tapped: () -> Void
             
-            init(pagesModel: PDFPagesModel, pageIndex: Int, tapped: @escaping () -> Void) {
-                _pagesModel = StateObject(wrappedValue: pagesModel)
+            init(pdfManager: PDFManager, pagesModel: PDFPagesModel, pageIndex: Int, identifier: UUID, tapped: @escaping () -> Void) {
+                self.pdfManager = pdfManager
+                _pagesModel = ObservedObject(wrappedValue: pagesModel)
                 self.pageIndex = pageIndex
+                self.identifier = identifier
                 self.tapped = tapped
                 
-                pagesModel.fetchThumbnail(pageIndex: pageIndex)
+                pdfManager.fetchThumbnail(pageIndex: pageIndex, identifier: self.identifier)
             }
             
             var body: some View {
@@ -560,8 +566,9 @@ extension PDFThumbnailsViewController.PDFThumbnails {
     private static let dropAnimationDuration = 0.1
     
     struct ThumbnailDropDelegate: DropDelegate {
-        @ObservedObject var pagesModel: PDFPagesModel
+        let pdfManager: PDFManager
         let pageIndex: Int
+        let identifier: UUID
         @Binding var internalDragPageIndex: Int?
         @Binding var currentInternalDropPageIndex: Int?
         @Binding var externalDropFakePageIndex: Int?
@@ -573,7 +580,7 @@ extension PDFThumbnailsViewController.PDFThumbnails {
             }
             
             withAnimation(.linear(duration: PDFThumbnailsViewController.PDFThumbnails.dropAnimationDuration)) {
-                pagesModel.exchangeImages(index1: internalDragPageIndex, index2: pageIndex)
+                pdfManager.exchangeImages(index1: internalDragPageIndex, index2: pageIndex, identifier: self.identifier)
                 currentInternalDropPageIndex = pageIndex
             }
         }
@@ -595,14 +602,14 @@ extension PDFThumbnailsViewController.PDFThumbnails {
             }
             
             withAnimation(.linear(duration: PDFThumbnailsViewController.PDFThumbnails.dropAnimationDuration)) {
-                pagesModel.exchangeImages(index1: internalDragPageIndex, index2: pageIndex)
+                pdfManager.exchangeImages(index1: internalDragPageIndex, index2: pageIndex, identifier: self.identifier)
                 currentInternalDropPageIndex = nil
             }
         }
         
         func performDrop(info: DropInfo) -> Bool {
             if let internalDragPageIndex {
-                pagesModel.exchangePages(index1: internalDragPageIndex, index2: pageIndex)
+                pdfManager.exchangePages(index1: internalDragPageIndex, index2: pageIndex, excludePageModelWithIdentifier: self.identifier)
                 currentInternalDropPageIndex = nil
                 self.internalDragPageIndex = nil
             } else {
