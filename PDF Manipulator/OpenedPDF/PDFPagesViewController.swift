@@ -84,10 +84,10 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
     struct OuterPDFMainView: View {
         let pdfManager: PDFManager
         unowned let scene: UIWindowScene
-        unowned let pdfPagesVC: PDFPagesViewController!
+        unowned let pdfPagesVC: PDFPagesViewController?
         
         var body: some View {
-            PDFMainView(scene: scene, pdfManager: pdfManager, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
+            PDFMainView(scene: scene, parentViewController: pdfPagesVC, pdfManager: pdfManager, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
         }
     }
     
@@ -108,7 +108,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
         
-        init(scene: UIWindowScene, parentViewController: UIViewController? = nil, pdfManager: PDFManager, displayScale: Double) {
+        init(scene: UIWindowScene, parentViewController: UIViewController?, pdfManager: PDFManager, displayScale: Double) {
             self.scene = scene
             self.parentViewController = parentViewController
             self.pdfManager = pdfManager

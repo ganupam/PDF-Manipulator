@@ -13,7 +13,7 @@ import Combine
 import PDFKit
 
 final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpenedPDFsViewController.RecentlyOpenedPDFsView> {
-    let scene: UIWindowScene
+    unowned let scene: UIWindowScene
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("Not implemented")
@@ -38,7 +38,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
     }
     
     struct RecentlyOpenedPDFsView: View {
-        let scene: UIWindowScene
+        unowned let scene: UIWindowScene
 
         private static let horizontalSpacing = 15.0
         private static let minimumColumnWidth = 110.0
@@ -153,8 +153,8 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                 ForEach(recentlyOpenFilesManager.urls, id: \.self) { url in
                                     VStack(spacing: 0) {
                                         Image(uiImage: thumbnails[url] ?? UIImage())
-                                            .frame(width: thumbnails[url] == nil ? Self.thumbnailHeight : nil, height: Self.thumbnailHeight)
                                             .border(.gray, width: 0.5)
+                                            .frame(width: thumbnails[url] == nil ? Self.thumbnailHeight : nil, height: Self.thumbnailHeight)
                                             .onDrag {
                                                 let itemProvider = NSItemProvider(item: url as NSURL, typeIdentifier: UTType.pdf.identifier)// NSItemProvider(contentsOf: url)!
                                                 

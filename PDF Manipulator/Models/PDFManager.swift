@@ -9,7 +9,7 @@ import Foundation
 import UIKit
 import PDFKit
 
-final class PDFManager {
+final class PDFManager: NSObject {
     static let willInsertPages = Notification.Name("willInsertPages")
     static let willDeletePages = Notification.Name("willDeletePages")
     static let didRotatePage = Notification.Name("didRotatePage")
@@ -21,17 +21,49 @@ final class PDFManager {
     
     private var pdfDoc: PDFDocument
     private(set) var pagesAspectRatio: [Double]
-
-    let url: URL
+    private var lastModifiedDate: Date
     
-    init?(url: URL) {
+    let url: URL
+    weak var scene: UIWindowScene?
+    
+    init?(url: URL, scene: UIWindowScene) {
         guard url.startAccessingSecurityScopedResource() else { return nil }
                 
         guard let doc = PDFDocument(url: url) else { return nil }
     
         self.url = url
         self.pdfDoc = doc
+        self.lastModifiedDate = ((try? FileManager.default.attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date) ?? Date()
+        self.pagesAspectRatio = Array(repeating: 0.0, count: self.pdfDoc.pageCount)
+        self.scene = scene
         
+        super.init()
+
+        self.calculateAspectRatios()
+
+        NSFileCoordinator.addFilePresenter(self)
+        
+        NotificationCenter.default.addObserver(forName: UIScene.didEnterBackgroundNotification, object: scene, queue: .main) { [weak self] _ in
+            guard let strongSelf = self else { return }
+            
+            NSFileCoordinator.removeFilePresenter(strongSelf)
+        }
+        
+        NotificationCenter.default.addObserver(forName: UIScene.willEnterForegroundNotification, object: scene, queue: .main) { [weak self] _ in
+            guard let strongSelf = self else { return }
+            
+            guard FileManager.default.fileExists(atPath: strongSelf.url.path) else {
+                UIApplication.shared.requestSceneSessionDestruction(scene.session, options: nil)
+                return
+            }
+            
+            NSFileCoordinator.addFilePresenter(strongSelf)
+        }
+    }
+    
+    
+    
+    private func calculateAspectRatios() {
         self.pagesAspectRatio = Array(repeating: 0.0, count: self.pdfDoc.pageCount)
         for i in (0 ..< self.pdfDoc.pageCount) {
             guard let page = self.pdfDoc.page(at: i) else {
@@ -196,6 +228,11 @@ final class PDFPagesModel: ObservableObject {
         self.imageGenerationState = Array(repeating: .notStarted, count: pdf.pageCount)
     }
     
+    fileprivate func reinitialize() {
+        self.images = Array(repeating: nil, count: pdf.pageCount)
+        self.imageGenerationState = Array(repeating: .notStarted, count: pdf.pageCount)
+    }
+    
     fileprivate func changeWidth(_ width: Double) {
         DispatchQueue.main.async {
             guard self.currentWidth != width else { return}
@@ -272,5 +309,59 @@ final class PDFPagesModel: ObservableObject {
         let img = self.images[index1]
         self.images[index1] = self.images[index2]
         self.images[index2] = img
+    }
+}
+
+extension PDFManager: NSFilePresenter {
+    var presentedItemURL: URL? {
+        self.url
+    }
+    
+    var presentedItemOperationQueue: OperationQueue {
+        .main
+    }
+    
+    func presentedItemDidChange() {
+        var error: NSError? = nil
+        NSFileCoordinator().coordinate(readingItemAt: self.url, error: &error) { url in
+            guard let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date, date != self.lastModifiedDate else { return }
+            
+            self.lastModifiedDate = date
+            
+            self.reloadPDF(with: url)
+        }
+    }
+    
+    func presentedItemDidMove(to newURL: URL) {
+        if let scene {
+            UIApplication.shared.requestSceneSessionDestruction(scene.session, options: nil)
+            UIApplication.openPDF(newURL, requestingScene: scene)
+        }
+    }
+    
+    func accommodatePresentedItemDeletion(completionHandler: @escaping (Error?) -> Void) {
+        if let scene {
+            UIApplication.shared.requestSceneSessionDestruction(scene.session, options: nil)
+        }
+        completionHandler(nil)
+    }
+    
+    func savePresentedItemChanges(completionHandler: @escaping (Error?) -> Void) {
+        completionHandler(nil)
+    }
+    
+    private func reloadPDF(with url: URL) {
+        guard let pdf = PDFDocument(url: url) else {
+            url.stopAccessingSecurityScopedResource()
+            return
+        }
+        
+        self.pdfDoc = pdf
+        self.calculateAspectRatios()
+        
+        self.registeredObjects.values.forEach {
+            $0.pdf = pdf
+            $0.reinitialize()
+        }
     }
 }
