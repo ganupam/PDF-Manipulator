@@ -133,6 +133,15 @@ extension Double {
 
 extension UIApplication {
     class func openPDF(_ url: URL, requestingScene: UIWindowScene) {
+        guard url.startAccessingSecurityScopedResource() else {
+            UIAlertController.show(message: NSLocalizedString("unableToOpen", comment: ""), scene: requestingScene)
+            return
+        }
+        
+        defer {
+            url.stopAccessingSecurityScopedResource()
+        }
+        
         guard let bookmarkData = try? url.bookmarkData(options: .minimalBookmark) else {
             UIAlertController.show(message: NSLocalizedString("unableToOpen", comment: ""), scene: requestingScene)
             return
@@ -156,7 +165,8 @@ extension UIApplication {
             UIApplication.shared.requestSceneSessionActivation(session, userActivity: userActivity, options: activationOptions)
             RecentlyOpenFilesManager.sharedInstance.addURL(url)
         } else {
-            guard let pdfManager = PDFManager(url: url), let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+            guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene, let pdfManager = PDFManager(url: url, scene: scene) else {
+                UIAlertController.show(message: NSLocalizedString("unableToOpen", comment: ""), scene: requestingScene)
                 return
             }
             

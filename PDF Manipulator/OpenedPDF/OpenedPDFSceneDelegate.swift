@@ -19,17 +19,15 @@ final class OpenedPDFSceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
           
         let window = UIWindow(windowScene: windowScene)
-        guard let url = session.url else {
-            return
-        }
-        
-        if let manager = PDFManager(url: url) {
+
+        let url = session.url
+        if let url, let manager = PDFManager(url: url, scene: windowScene) {
             session.pdfManager = manager
             window.rootViewController = SplitViewController(scene: windowScene)
         } else {
             window.rootViewController = UIHostingController(rootView: ErrorOpeningPDFView())
         }
-        windowScene.title = url.lastPathComponent
+        windowScene.title = url?.lastPathComponent
         window.makeKeyAndVisible()
         self.window = window
     }
