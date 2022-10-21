@@ -102,7 +102,7 @@ extension UISceneSession {
 
         guard let bookmarkData = self.userInfo?[.urlBookmarkDataKey] as? Data, let url = try? URL(resolvingBookmarkData: bookmarkData, bookmarkDataIsStale: &bookmarkDataIsStale) else { return nil }
         
-        if bookmarkDataIsStale, let newBookmarkData = try? url.bookmarkData(options: .minimalBookmark) {
+        if bookmarkDataIsStale, let newBookmarkData = try? url.bookmarkData() {
             self.userInfo?[.urlBookmarkDataKey] = newBookmarkData
         }
         
@@ -142,7 +142,7 @@ extension UIApplication {
             url.stopAccessingSecurityScopedResource()
         }
         
-        guard let bookmarkData = try? url.bookmarkData(options: .minimalBookmark) else {
+        guard let bookmarkData = try? url.bookmarkData() else {
             UIAlertController.show(message: NSLocalizedString("unableToOpen", comment: ""), scene: requestingScene)
             return
         }

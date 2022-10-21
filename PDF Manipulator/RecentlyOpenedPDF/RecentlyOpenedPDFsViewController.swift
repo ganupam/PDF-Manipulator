@@ -160,7 +160,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                                 
                                                 // Support for drag-drop to create new window scene.
                                                 let activity = NSUserActivity(activityType: .openPDFUserActivityType)
-                                                activity.userInfo = [String.urlBookmarkDataKey : try! url.bookmarkData(options: .minimalBookmark)]
+                                                activity.userInfo = [String.urlBookmarkDataKey : try! url.bookmarkData()]
                                                 itemProvider.registerObject(activity, visibility: .all)
                                                 itemProvider.suggestedName = url.lastPathComponent
                                                 return itemProvider

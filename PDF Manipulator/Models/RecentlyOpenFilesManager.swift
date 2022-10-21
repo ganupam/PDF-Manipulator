@@ -72,7 +72,7 @@ final class RecentlyOpenFilesManager: NSObject, ObservableObject {
     private func save() {
         do {
             let urlsData = self.urls.compactMap {
-                try? $0.bookmarkData(options: .minimalBookmark)
+                try? $0.bookmarkData()
             }
             let data = try NSKeyedArchiver.archivedData(withRootObject: urlsData, requiringSecureCoding: false)
             try data.write(to: .documentsFolder.appendingPathComponent(Self.filename))
