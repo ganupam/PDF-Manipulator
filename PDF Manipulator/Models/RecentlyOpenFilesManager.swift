@@ -31,9 +31,11 @@ final class RecentlyOpenFilesManager: NSObject, ObservableObject {
         
         self.removeNonExistentFiles()
         
-        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: nil) { [weak self] _ in
-            self?.removeNonExistentFiles()
-        }
+        NotificationCenter.default.addObserver(self, selector: #selector(applicationDidBecomeActiveNotification), name: UIApplication.didBecomeActiveNotification, object: nil)
+    }
+    
+    @objc private func applicationDidBecomeActiveNotification() {
+        self.removeNonExistentFiles()
     }
     
     private func removeNonExistentFiles() {

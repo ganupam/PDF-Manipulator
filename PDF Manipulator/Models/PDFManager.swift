@@ -24,12 +24,12 @@ final class PDFManager: NSObject {
     private var lastModifiedDate: Date
     
     let url: URL
-    weak var scene: UIWindowScene?
+    unowned var scene: UIWindowScene
     
     init?(url: URL, scene: UIWindowScene) {
         guard url.startAccessingSecurityScopedResource() else { return nil }
                 
-        guard let doc = PDFDocument(url: url) else { return nil }
+        guard let doc = PDFDocument(url: url) else { url.stopAccessingSecurityScopedResource(); return nil }
     
         self.url = url
         self.pdfDoc = doc
@@ -41,27 +41,22 @@ final class PDFManager: NSObject {
 
         self.calculateAspectRatios()
 
-        NSFileCoordinator.addFilePresenter(self)
-        
-        NotificationCenter.default.addObserver(forName: UIScene.didEnterBackgroundNotification, object: scene, queue: .main) { [weak self] _ in
-            guard let strongSelf = self else { return }
-            
-            NSFileCoordinator.removeFilePresenter(strongSelf)
-        }
-        
-        NotificationCenter.default.addObserver(forName: UIScene.willEnterForegroundNotification, object: scene, queue: .main) { [weak self] _ in
-            guard let strongSelf = self else { return }
-            
-            guard FileManager.default.fileExists(atPath: strongSelf.url.path) else {
-                UIApplication.shared.requestSceneSessionDestruction(scene.session, options: nil)
-                return
-            }
-            
-            NSFileCoordinator.addFilePresenter(strongSelf)
-        }
+        NotificationCenter.default.addObserver(self, selector: #selector(sceneDidEnterBackgroundNotification), name: UIScene.didEnterBackgroundNotification, object: scene)
+        NotificationCenter.default.addObserver(self, selector: #selector(sceneWillEnterForegroundNotification), name: UIScene.willEnterForegroundNotification, object: scene)
     }
     
+    @objc private func sceneDidEnterBackgroundNotification() {
+        NSFileCoordinator.removeFilePresenter(self)
+    }
     
+    @objc private func sceneWillEnterForegroundNotification() {
+        guard FileManager.default.fileExists(atPath: self.url.path) else {
+            UIApplication.shared.requestSceneSessionDestruction(self.scene.session, options: nil)
+            return
+        }
+
+        NSFileCoordinator.addFilePresenter(self)
+    }
     
     private func calculateAspectRatios() {
         self.pagesAspectRatio = Array(repeating: 0.0, count: self.pdfDoc.pageCount)
@@ -333,16 +328,12 @@ extension PDFManager: NSFilePresenter {
     }
     
     func presentedItemDidMove(to newURL: URL) {
-        if let scene {
-            UIApplication.shared.requestSceneSessionDestruction(scene.session, options: nil)
-            UIApplication.openPDF(newURL, requestingScene: scene)
-        }
+        UIApplication.shared.requestSceneSessionDestruction(scene.session, options: nil)
+        UIApplication.openPDF(newURL, requestingScene: scene)
     }
     
     func accommodatePresentedItemDeletion(completionHandler: @escaping (Error?) -> Void) {
-        if let scene {
-            UIApplication.shared.requestSceneSessionDestruction(scene.session, options: nil)
-        }
+        UIApplication.shared.requestSceneSessionDestruction(scene.session, options: nil)
         completionHandler(nil)
     }
     
