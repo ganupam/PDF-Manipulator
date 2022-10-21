@@ -22,6 +22,7 @@
 		6EB7978128B8B5C9002120E1 /* SplitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB7978028B8B5C9002120E1 /* SplitViewController.swift */; };
 		6EB7978628B8B5CC002120E1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6EB7978528B8B5CC002120E1 /* Assets.xcassets */; };
 		6EB7978928B8B5CC002120E1 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6EB7978728B8B5CC002120E1 /* LaunchScreen.storyboard */; };
+		6EBFEF9E2903630400EA9A3B /* AnimatedCheckmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EBFEF9D2903630400EA9A3B /* AnimatedCheckmark.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +44,7 @@
 		6EB7978528B8B5CC002120E1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6EB7978828B8B5CC002120E1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6EB7978A28B8B5CC002120E1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6EBFEF9D2903630400EA9A3B /* AnimatedCheckmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedCheckmark.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -107,6 +109,7 @@
 			children = (
 				41907E8828FCC8A50052ED9E /* To Do.txt */,
 				6EB7977C28B8B5C9002120E1 /* AppDelegate.swift */,
+				6EBFEF9D2903630400EA9A3B /* AnimatedCheckmark.swift */,
 				41907E8A28FCCAD10052ED9E /* Models */,
 				6E84D98E28EE074A0034C170 /* OpenedPDF */,
 				6E84D98D28EE07260034C170 /* RecentlyOpenedPDF */,
@@ -203,6 +206,7 @@
 				41FBA7C928ED4F84009470FD /* RecentlyOpenedPDFsViewController.swift in Sources */,
 				6EB7977F28B8B5C9002120E1 /* RecentlyOpenedPDFsSceneDelegate.swift in Sources */,
 				41907E8C28FCCB770052ED9E /* RecentlyOpenFilesManager.swift in Sources */,
+				6EBFEF9E2903630400EA9A3B /* AnimatedCheckmark.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

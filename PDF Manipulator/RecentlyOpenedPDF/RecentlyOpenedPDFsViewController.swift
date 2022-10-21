@@ -47,7 +47,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
         @State private var showingFilePicker = false
         @ObservedObject private var recentlyOpenFilesManager = RecentlyOpenFilesManager.sharedInstance
         @State private var thumbnails = [URL : UIImage]()
-        
+        @State private var showAnimatedCheckmark = false
         
         private func contextMenu(url: URL) -> some View {
             let recentlyOpenedURLs = RecentlyOpenFilesManager.sharedInstance.urls.filter { recentlyOpenedURL in
@@ -56,8 +56,8 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
 
             return Group {
                 Section("addPagesToRecentFiles") {
-                    ForEach(recentlyOpenedURLs, id: \.self) { recentlyOpenedURL in
-                        if recentlyOpenedURL != url, let filename = recentlyOpenedURL.lastPathComponent {
+                    ForEach(recentlyOpenedURLs, id: \.self) { destinationURL in
+                        if destinationURL != url, let filename = destinationURL.lastPathComponent {
                             Button {
                                 guard url.startAccessingSecurityScopedResource() else { return }
                                 
@@ -71,6 +71,13 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                     doc.page(at: $0)
                                 }
                                 
+                                guard let doc = PDFDocument(url: destinationURL) else { return }
+                                
+                                for page in pages {
+                                    doc.insert(page, at: doc.pageCount)
+                                }
+                                doc.write(to: destinationURL)
+                                showAnimatedCheckmark = true
                             } label: {
                                 Label {
                                     Text(filename)
@@ -198,6 +205,16 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                         }
                         .onAppear() {
                             generateThumbnails(urls: recentlyOpenFilesManager.urls)
+                        }
+                    }
+                    .overlay {
+                        if showAnimatedCheckmark {
+                            AnimatedCheckmark() {
+                                showAnimatedCheckmark = false
+                            }
+                            .frame(width: 50, height: 50)
+                            .padding(20)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 5))
                         }
                     }
                 }
