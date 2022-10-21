@@ -270,6 +270,14 @@ extension PDFThumbnailsViewController {
                 pageIDs[indices[0]] = pageIDs[indices[1]]
                 pageIDs[indices[1]] = pageID
             }
+            .onReceive(NotificationCenter.default.publisher(for: PDFManager.willReloadPDF)) { notification in
+                isSelected = Array(repeating: false, count: pdfManager.pageCount)
+                var IDs = [UUID]()
+                for _ in 0 ..< pdfManager.pageCount {
+                    IDs.append(UUID())
+                }
+                pageIDs = IDs
+            }
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar) {
                     if inSelectionMode {

@@ -14,6 +14,7 @@ final class PDFManager: NSObject {
     static let willDeletePages = Notification.Name("willDeletePages")
     static let didRotatePage = Notification.Name("didRotatePage")
     static let didExchangePages = Notification.Name("didExchangePages")
+    static let willReloadPDF = Notification.Name("willReloadPDF")
     static let pagesIndicesKey = "pagesIndices"
     static let pagesWillInsertKey = "pagesWillInsert"
 
@@ -126,6 +127,8 @@ final class PDFManager: NSObject {
         self.registeredObjects.values.forEach { model in
             model.insertPages(at: newPageIndices)
         }
+        
+        self.saveChanges()
     }
     
     @inline(__always) func rotateLeft(_ index: Int) {
@@ -158,6 +161,8 @@ final class PDFManager: NSObject {
         }
         
         NotificationCenter.default.post(name: PDFManager.didRotatePage, object: self, userInfo: [PDFManager.pagesIndicesKey : indices])
+        
+        self.saveChanges()
     }
     
     @inline(__always) func delete(_ index: Int) {
@@ -179,6 +184,8 @@ final class PDFManager: NSObject {
         self.registeredObjects.values.forEach { model in
             model.delete(Array(indices))
         }
+        
+        self.saveChanges()
     }
     
     func exchangeImages(index1: Int, index2: Int, identifier: UUID) {
@@ -197,6 +204,14 @@ final class PDFManager: NSObject {
         }
         
         NotificationCenter.default.post(name: PDFManager.didExchangePages, object: self, userInfo: [PDFManager.pagesIndicesKey : [index1, index2]])
+        
+        self.saveChanges()
+    }
+    
+    private func saveChanges() {
+        NSFileCoordinator.removeFilePresenter(self)
+        self.pdfDoc.write(to: self.url)
+        NSFileCoordinator.addFilePresenter(self)
     }
 }
 
@@ -349,6 +364,8 @@ extension PDFManager: NSFilePresenter {
         
         self.pdfDoc = pdf
         self.calculateAspectRatios()
+        
+        NotificationCenter.default.post(name: Self.willReloadPDF, object: self)
         
         self.registeredObjects.values.forEach {
             $0.pdf = pdf
