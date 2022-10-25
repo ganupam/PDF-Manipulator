@@ -23,6 +23,8 @@
 		6EB7978628B8B5CC002120E1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6EB7978528B8B5CC002120E1 /* Assets.xcassets */; };
 		6EB7978928B8B5CC002120E1 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6EB7978728B8B5CC002120E1 /* LaunchScreen.storyboard */; };
 		6EBFEF9E2903630400EA9A3B /* AnimatedCheckmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EBFEF9D2903630400EA9A3B /* AnimatedCheckmark.swift */; };
+		6ECC642F2908824600D8542B /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 6ECC642E2908824600D8542B /* GoogleMobileAds */; };
+		6ECC64312908844A00D8542B /* GoogleADBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ECC64302908844900D8542B /* GoogleADBannerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +47,7 @@
 		6EB7978828B8B5CC002120E1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6EB7978A28B8B5CC002120E1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6EBFEF9D2903630400EA9A3B /* AnimatedCheckmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedCheckmark.swift; sourceTree = "<group>"; };
+		6ECC64302908844900D8542B /* GoogleADBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleADBannerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +55,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6ECC642F2908824600D8542B /* GoogleMobileAds in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -110,6 +114,7 @@
 				41907E8828FCC8A50052ED9E /* To Do.txt */,
 				6EB7977C28B8B5C9002120E1 /* AppDelegate.swift */,
 				6EBFEF9D2903630400EA9A3B /* AnimatedCheckmark.swift */,
+				6ECC64302908844900D8542B /* GoogleADBannerView.swift */,
 				41907E8A28FCCAD10052ED9E /* Models */,
 				6E84D98E28EE074A0034C170 /* OpenedPDF */,
 				6E84D98D28EE07260034C170 /* RecentlyOpenedPDF */,
@@ -139,6 +144,9 @@
 			dependencies = (
 			);
 			name = "PDF Manipulator";
+			packageProductDependencies = (
+				6ECC642E2908824600D8542B /* GoogleMobileAds */,
+			);
 			productName = "PDF Splitter";
 			productReference = 6EB7977928B8B5C9002120E1 /* PDF Manipulator.app */;
 			productType = "com.apple.product-type.application";
@@ -167,6 +175,9 @@
 				Base,
 			);
 			mainGroup = 6EB7977028B8B5C9002120E1;
+			packageReferences = (
+				6ECC642D2908824600D8542B /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+			);
 			productRefGroup = 6EB7977A28B8B5C9002120E1 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -196,6 +207,7 @@
 			files = (
 				6E5B04BC28D0996D00D5F25A /* FilePickerView.swift in Sources */,
 				6E84D98828EDF8F40034C170 /* OpenedPDFSceneDelegate.swift in Sources */,
+				6ECC64312908844A00D8542B /* GoogleADBannerView.swift in Sources */,
 				6EB7978128B8B5C9002120E1 /* SplitViewController.swift in Sources */,
 				6E5B04BE28D099BC00D5F25A /* Extensions.swift in Sources */,
 				6E1DFEFB28EF84140096F309 /* Common.swift in Sources */,
@@ -370,6 +382,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.realnotion.pdfmanipulator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -403,6 +416,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.realnotion.pdfmanipulator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -434,6 +448,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		6ECC642D2908824600D8542B /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6ECC642E2908824600D8542B /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6ECC642D2908824600D8542B /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6EB7977128B8B5C9002120E1 /* Project object */;
 }

@@ -105,9 +105,11 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         @State private var scaleFactor = 1.0
         @State private var previousScaleFactor = 1.0
         @State private var showDocumentPicker = false
-
+        @State private var adSize = CGSize.zero
+        
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
+        
         
         init(scene: UIWindowScene, parentViewController: UIViewController?, pdfManager: PDFManager, displayScale: Double) {
             self.scene = scene
@@ -125,53 +127,59 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
 
         var body: some View {
             GeometryReader { reader in
-                if reader.size.width == 0 {
-                    EmptyView()
-                } else {
-                    ScrollViewReader { scrollReader in
-                        ScrollView(scaleFactor == 1.0 ? .vertical : [.horizontal, .vertical], showsIndicators: scaleFactor == 1.0) {
-                            LazyVStack(spacing: Self.verticalSpacing) {
-                                ForEach(0 ..< pdfManager.pageCount, id: \.self) { pageIndex in
-                                    createList(width: (reader.size.width - (Self.gridPadding * 2)), pageIndex: pageIndex)
-                                        .frame(width: (reader.size.width - (Self.gridPadding * 2)) * scaleFactor, height: pdfManager.pagesAspectRatio[pageIndex] * (reader.size.width - (Self.gridPadding * 2)) * scaleFactor)
-                                        .overlay {
-                                            GeometryReader { geometry in
-                                                Color.clear.preference(
-                                                    key: ScrollOffsetPreferenceKey.self,
-                                                    value: geometry.frame(in: .named("scrollView")).origin
-                                                )
+                VStack(spacing: 0) {
+                    if reader.size.width != 0 {
+                        ScrollViewReader { scrollReader in
+                            ScrollView(scaleFactor == 1.0 ? .vertical : [.horizontal, .vertical], showsIndicators: scaleFactor == 1.0) {
+                                LazyVStack(spacing: Self.verticalSpacing) {
+                                    ForEach(0 ..< pdfManager.pageCount, id: \.self) { pageIndex in
+                                        createList(width: (reader.size.width - (Self.gridPadding * 2)), pageIndex: pageIndex)
+                                            .frame(width: (reader.size.width - (Self.gridPadding * 2)) * scaleFactor, height: pdfManager.pagesAspectRatio[pageIndex] * (reader.size.width - (Self.gridPadding * 2)) * scaleFactor)
+                                            .overlay {
+                                                GeometryReader { geometry in
+                                                    Color.clear.preference(
+                                                        key: ScrollOffsetPreferenceKey.self,
+                                                        value: geometry.frame(in: .named("scrollView")).origin
+                                                    )
+                                                }
                                             }
-                                        }
-                                        .onPreferenceChange(ScrollOffsetPreferenceKey.self) {
-                                            guard !disablePostingActivePageIndexNotification, $0.y > 0 && $0.y < reader.size.height / 2 && activePageIndex != pageIndex else { return }
-
-                                            activePageIndex = pageIndex
-                                            NotificationCenter.default.post(name: Common.activePageChangedNotification, object: identifier, userInfo: [Common.activePageIndexKey : activePageIndex, Common.pdfURLKey : self.pdfManager.url])
-                                        }
-                                        .id(pageIndex)
+                                            .onPreferenceChange(ScrollOffsetPreferenceKey.self) {
+                                                guard !disablePostingActivePageIndexNotification, $0.y > 0 && $0.y < reader.size.height / 2 && activePageIndex != pageIndex else { return }
+                                                
+                                                activePageIndex = pageIndex
+                                                NotificationCenter.default.post(name: Common.activePageChangedNotification, object: identifier, userInfo: [Common.activePageIndexKey : activePageIndex, Common.pdfURLKey : self.pdfManager.url])
+                                            }
+                                            .id(pageIndex)
+                                    }
+                                }
+                                .padding(Self.gridPadding)
+                            }
+                            .gesture(MagnificationGesture().onChanged { newValue in
+                                scaleFactor = max(previousScaleFactor * newValue, 1)
+                            }.onEnded { _ in
+                                previousScaleFactor = scaleFactor
+                            })
+                            .onReceive(NotificationCenter.default.publisher(for: Common.activePageChangedNotification)) { notification in
+                                guard notification.object as? UUID != self.identifier, notification.userInfo?[Common.pdfURLKey] as? URL == self.pdfManager.url, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
+                                
+                                disablePostingActivePageIndexNotification = true
+                                withAnimation(.linear(duration: 0.1)) {
+                                    scrollReader.scrollTo(pageIndex, anchor: UnitPoint(x: 0, y: -0.2))
+                                }
+                                Timer.scheduledTimer(withTimeInterval: 1, repeats: false) { _ in
+                                    disablePostingActivePageIndexNotification = false
                                 }
                             }
-                            .padding(Self.gridPadding)
+                            .coordinateSpace(name: "scrollView")
                         }
-                        .gesture(MagnificationGesture().onChanged { newValue in
-                            scaleFactor = max(previousScaleFactor * newValue, 1)
-                        }.onEnded { _ in
-                            previousScaleFactor = scaleFactor
-                        })
-                        .onReceive(NotificationCenter.default.publisher(for: Common.activePageChangedNotification)) { notification in
-                            guard notification.object as? UUID != self.identifier, notification.userInfo?[Common.pdfURLKey] as? URL == self.pdfManager.url, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
-
-                            disablePostingActivePageIndexNotification = true
-                            withAnimation(.linear(duration: 0.1)) {
-                                scrollReader.scrollTo(pageIndex, anchor: UnitPoint(x: 0, y: -0.2))
-                            }
-                            Timer.scheduledTimer(withTimeInterval: 1, repeats: false) { _ in
-                                disablePostingActivePageIndexNotification = false
-                            }
-                        }
-                        .coordinateSpace(name: "scrollView")
+                        .background(.gray)
                     }
-                    .background(.gray)
+                    
+                    GoogleADBannerView(adUnitID: "ca-app-pub-5089136213554560/4047719008", scene: scene, rootViewController: parentViewController!, availableWidth: reader.size.width) { size in
+                        adSize = size
+                    }
+                    .frame(width: adSize.width, height: adSize.height)
+                    .frame(maxWidth: reader.size.width)
                 }
             }
             .sheet(isPresented: $showDocumentPicker) {
