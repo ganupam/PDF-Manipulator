@@ -106,7 +106,8 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         @State private var previousScaleFactor = 1.0
         @State private var showDocumentPicker = false
         @State private var adSize = CGSize.zero
-        
+        @State private var showAd = (StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState != .purchased)
+
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
         
@@ -173,13 +174,18 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                             .coordinateSpace(name: "scrollView")
                         }
                         .background(.gray)
+                        .onReceive(NotificationCenter.default.publisher(for: StoreKitManager.purchaseStateChanged)) { _ in
+                            showAd = (StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState != .purchased)
+                        }
                     }
                     
-                    GoogleADBannerView(adUnitID: "ca-app-pub-5089136213554560/4047719008", scene: scene, rootViewController: parentViewController!, availableWidth: reader.size.width) { size in
-                        adSize = size
+                    if showAd {
+                        GoogleADBannerView(adUnitID: "ca-app-pub-5089136213554560/4047719008", scene: scene, rootViewController: parentViewController!, availableWidth: reader.size.width) { size in
+                            adSize = size
+                        }
+                        .frame(width: adSize.width, height: adSize.height)
+                        .frame(maxWidth: reader.size.width)
                     }
-                    .frame(width: adSize.width, height: adSize.height)
-                    .frame(maxWidth: reader.size.width)
                 }
             }
             .sheet(isPresented: $showDocumentPicker) {

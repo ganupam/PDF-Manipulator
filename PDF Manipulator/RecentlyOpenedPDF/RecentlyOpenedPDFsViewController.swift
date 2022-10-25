@@ -53,7 +53,8 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
         @State private var showAnimatedCheckmark = false
         @State private var addToExistingPDFURL: URL? = nil
         @State private var adSize = CGSize.zero
-
+        @State private var adRemovalTransactionState = StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState
+        
         private func pages(from url: URL) -> [PDFPage]? {
             guard url.startAccessingSecurityScopedResource() else { return nil }
             
@@ -210,21 +211,46 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                 
                                 self.generateThumbnails(urls: [url])
                             }
+                            .onReceive(NotificationCenter.default.publisher(for: StoreKitManager.purchaseStateChanged)) { _ in
+                                adRemovalTransactionState = StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState
+                            }
                             .onAppear() {
                                 generateThumbnails(urls: recentlyOpenFilesManager.urls)
                             }
                             
-                            GoogleADBannerView(adUnitID: "ca-app-pub-5089136213554560/9674578065", scene: scene, rootViewController: parentViewController!, availableWidth: reader.size.width) { size in
-                                adSize = size
+                            if adRemovalTransactionState != .purchased {
+                                GoogleADBannerView(adUnitID: "ca-app-pub-5089136213554560/9674578065", scene: scene, rootViewController: parentViewController!, availableWidth: reader.size.width) { size in
+                                    adSize = size
+                                }
+                                .frame(width: adSize.width, height: adSize.height)
+                                .frame(maxWidth: reader.size.width)
                             }
-                            .frame(width: adSize.width, height: adSize.height)
-                            .frame(maxWidth: reader.size.width)
                         }
                     }
                     .overlay {
                         if showAnimatedCheckmark {
                             AnimatedCheckmarkWithText() {
                                 showAnimatedCheckmark = false
+                            }
+                        }
+                    }
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            if StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState != .purchased {
+                                Menu {
+                                    Button(String(format: NSLocalizedString("adRemovalTitle", comment: ""), StoreKitManager.InAppPurchaseProduct.adRemoval.price) + (adRemovalTransactionState == .deferred ? " (" + NSLocalizedString("deferredTransaction", comment: "") + ")" : "")) {
+                                        proceedWithAdRemoval()
+                                    }
+                                    .disabled(adRemovalTransactionState == .deferred)
+                                    
+                                    Button(NSLocalizedString("restorePurchases", comment: "")) {
+                                        Task {
+                                            await StoreKitManager.sharedInstance.restoreAllProductsPurchaseState()
+                                        }
+                                    }
+                                } label: {
+                                    Image(systemName: "gearshape")
+                                }
                             }
                         }
                     }
@@ -259,6 +285,19 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                     
                     UIApplication.openPDF(url, requestingScene: self.scene)
                 }
+            }
+        }
+        
+        private func proceedWithAdRemoval() {
+            guard StoreKitManager.canMakePayments else {
+                let alert = UIAlertController(title: NSLocalizedString("IAPUnavailableTitle", comment: ""), message: NSLocalizedString("IAPUnavailableSubtitle", comment: ""), preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: NSLocalizedString("generalOk", comment: ""), style: .default))
+                scene.keyWindow?.rootViewController?.present(alert, animated: true)
+                return
+            }
+
+            Task {
+                await StoreKitManager.sharedInstance.purchase(product: StoreKitManager.InAppPurchaseProduct.adRemoval)
             }
         }
         
@@ -305,12 +344,16 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
         
         private func generateThumbnails(urls: [URL], size: CGSize = CGSize(width: .greatestFiniteMagnitude, height: Self.thumbnailHeight)) {
             urls.forEach { url in
+                guard url.startAccessingSecurityScopedResource() else { return }
+                
                 let request = QLThumbnailGenerator.Request(fileAt: url,
                                                            size: size,
                                                            scale: UIScreen.main.scale,
                                                            representationTypes: .thumbnail)
                 
                 QLThumbnailGenerator.shared.generateRepresentations(for: request) { (thumbnail, _, error) in
+                    url.stopAccessingSecurityScopedResource()
+                    
                     DispatchQueue.main.async {
                         guard let thumbnail, error == nil else { return }
                         

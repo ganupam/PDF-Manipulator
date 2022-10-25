@@ -28,3 +28,9 @@
 "addPagesToRecentFiles" = "Add page(s) to recently opened files";
 "errorOpeningPDF" = "Error opening PDF";
 "pdfPagesAdded" = "Added";
+"generalOK" = "OK";
+"IAPUnavailableTitle" = "Purchase";
+"IAPUnavailableSubtitle" = "In-app purchases are not allowed.";
+"adRemovalTitle" = "Remove ads for %1$@";
+"deferredTransaction" = "Waiting for Approval";
+"restorePurchases" = "Restore Purchases";

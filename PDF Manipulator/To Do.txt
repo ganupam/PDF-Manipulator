@@ -1,3 +1,5 @@
-Ads
-In-app purchase
 Analytics
+
+Import from photos/camera
+Share Extension
+

@@ -1,0 +1,37 @@
+{
+  "identifier" : "E5C8DC70",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "6444014425",
+      "localizations" : [
+        {
+          "description" : "Get rid of the ads!",
+          "displayName" : "Remove Ads",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "inapppurchase.adremoval",
+      "referenceName" : "Ad Removal",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6443783145",
+    "_askToBuyEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_developerTeamID" : "N6J3SCU25X",
+    "_lastSynchronizedDate" : 688433406.51115501
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 2,
+    "minor" : 0
+  }
+}
