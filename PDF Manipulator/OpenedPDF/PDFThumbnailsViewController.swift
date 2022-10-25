@@ -10,9 +10,7 @@ import SwiftUI
 import PDFKit
 import UniformTypeIdentifiers
 
-final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewController.OuterPDFThumbnailView> {
-    private static let supportedDroppedItemProviders = [UTType.pdf, UTType.jpeg, UTType.gif, UTType.bmp, UTType.png, UTType.tiff]
-    
+final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewController.OuterPDFThumbnailView> {    
     let pdfManager: PDFManager
     unowned let scene: UIWindowScene
     
@@ -231,7 +229,7 @@ extension PDFThumbnailsViewController {
                             .ignoresSafeArea(.all, edges: .top)
                             .padding(Self.gridPadding)
                         }
-                        .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ScrollViewDropDelegate(pageIndex:pagesModel.images.count, internalDragPageIndex: $internalDragPageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
+                        .onDrop(of: Common.supportedDroppedItemProviders, delegate: ScrollViewDropDelegate(pageIndex:pagesModel.images.count, internalDragPageIndex: $internalDragPageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
                         .onReceive(NotificationCenter.default.publisher(for: Common.activePageChangedNotification)) { notification in
                             guard notification.object as? UUID != self.identifier, notification.userInfo?[Common.pdfURLKey] as? URL == self.pdfManager.url, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
 
@@ -412,7 +410,7 @@ extension PDFThumbnailsViewController {
             let group = DispatchGroup()
             
             itemProviders.forEach { itemProvider in
-                guard let typeIdentifier = (PDFThumbnailsViewController.supportedDroppedItemProviders.first {
+                guard let typeIdentifier = (Common.supportedDroppedItemProviders.first {
                     itemProvider.registeredTypeIdentifiers.contains($0.identifier)
                 }) else { return }
                 
@@ -422,12 +420,12 @@ extension PDFThumbnailsViewController {
                         group.leave()
                     }
                     
-                    guard let url = data as? URL, url.startAccessingSecurityScopedResource() else { return }
+                    guard let url = data as? URL else { return }
                     
                     DispatchQueue.main.sync {
                         urls.append(url)
                         
-                        pages.append(contentsOf: self.pdfPages(from: url, typeIdentifier: typeIdentifier))
+                        pages.append(contentsOf: Common.pdfPages(from: url, typeIdentifier: typeIdentifier))
                     }
                 }
             }
@@ -439,31 +437,6 @@ extension PDFThumbnailsViewController {
                 urls.forEach {
                     $0.stopAccessingSecurityScopedResource()
                 }
-            }
-        }
-        
-        private func pdfPages(from url: URL, typeIdentifier: UTType) -> [PDFPage] {
-            switch typeIdentifier {
-            case .pdf:
-                guard let pdf = PDFDocument(url: url) else { return [] }
-                
-                var pages = [PDFPage]()
-                for i in 0 ..< pdf.pageCount {
-                    guard let page = pdf.page(at: i) else { continue }
-                    
-                    pages.append(page)
-                }
-                
-                return pages
-                
-            case .jpeg, .png, .tiff, .gif, .bmp:
-                // UIImage supports above formats.
-                guard let data = try? Data(contentsOf: url), let image = UIImage(data: data), let page = PDFPage(image: image) else { return [] }
-                
-                return [page]
-                
-            default:
-                return []
             }
         }
         
@@ -576,7 +549,7 @@ extension PDFThumbnailsViewController {
                     .padding(.top, 5)
             }
             .opacity(adjustedPageIndex == currentInternalDropPageIndex ? 0.01 : 1)
-            .onDrop(of: PDFThumbnailsViewController.supportedDroppedItemProviders, delegate: ThumbnailDropDelegate(pdfManager: pdfManager, pageIndex: pageIndex, identifier: self.identifier, internalDragPageIndex: $internalDragPageIndex, currentInternalDropPageIndex: $currentInternalDropPageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
+            .onDrop(of: Common.supportedDroppedItemProviders, delegate: ThumbnailDropDelegate(pdfManager: pdfManager, pageIndex: pageIndex, identifier: self.identifier, internalDragPageIndex: $internalDragPageIndex, currentInternalDropPageIndex: $currentInternalDropPageIndex, externalDropFakePageIndex: $externalDropFakePageIndex, dropped: self.handleDropItemProviders))
         }
         
         private struct Thumbnail: View {
@@ -661,7 +634,7 @@ extension PDFThumbnailsViewController.PDFThumbnails {
                 currentInternalDropPageIndex = nil
                 self.internalDragPageIndex = nil
             } else {
-                let itemProviders = info.itemProviders(for: PDFThumbnailsViewController.supportedDroppedItemProviders)
+                let itemProviders = info.itemProviders(for: Common.supportedDroppedItemProviders)
                 dropped(itemProviders)
             }
             return true
@@ -703,7 +676,7 @@ extension PDFThumbnailsViewController.PDFThumbnails {
                 self.internalDragPageIndex = nil
                 return false
             } else {
-                let itemProviders = info.itemProviders(for: PDFThumbnailsViewController.supportedDroppedItemProviders)
+                let itemProviders = info.itemProviders(for: Common.supportedDroppedItemProviders)
                 dropped(itemProviders)
                 return true
             }

@@ -15,7 +15,7 @@ struct AnimatedCheckmarkWithText: View {
         VStack(spacing: 15) {
             Checkmark()
                 .trim(from: 0, to: innerTrimEnd)
-                .stroke(.gray, style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round))
+                .stroke(.blue, style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
                 .frame(height: 50)
                 .onAppear() {
                     withAnimation(.linear(duration: 0.3)) {

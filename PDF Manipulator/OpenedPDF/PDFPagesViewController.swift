@@ -104,6 +104,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         @State private var identifier: UUID
         @State private var scaleFactor = 1.0
         @State private var previousScaleFactor = 1.0
+        @State private var showDocumentPicker = false
 
         private static let verticalSpacing = 10.0
         private static let gridPadding = 20.0
@@ -173,6 +174,15 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                     .background(.gray)
                 }
             }
+            .sheet(isPresented: $showDocumentPicker) {
+                FilePickerView(operationMode: .open(selectableContentTypes: Common.supportedDroppedItemProviders)) { url in
+                    guard let url, let type = UTType(tag: url.pathExtension, tagClass: .filenameExtension, conformingTo: nil) else { return }
+                    
+                    let pages = Common.pdfPages(from: url, typeIdentifier: type)
+                    
+                    self.pdfManager.insertPages(pages, at: self.pdfManager.pageCount)
+                }
+            }
             .navigationTitle("\(pdfManager.url.lastPathComponent)")
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarLeading) {
@@ -195,6 +205,12 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                         self.pdfPagesViewController.showQuickLookVC()
                     } label: {
                         Image(systemName: "pencil")
+                    }
+
+                    Button {
+                        showDocumentPicker = true
+                    } label: {
+                        Image(systemName: "plus.rectangle.portrait")
                     }
 
                     if UIDevice.current.userInterfaceIdiom == .pad {
