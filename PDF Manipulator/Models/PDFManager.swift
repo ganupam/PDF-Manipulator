@@ -22,7 +22,7 @@ final class PDFManager: NSObject {
     
     private var pdfDoc: PDFDocument
     private(set) var pagesAspectRatio: [Double]
-    private var lastModifiedDate: Date
+    private var lastModifiedDate: Date?
     
     let url: URL
     unowned var scene: UIWindowScene
@@ -34,7 +34,7 @@ final class PDFManager: NSObject {
     
         self.url = url
         self.pdfDoc = doc
-        self.lastModifiedDate = ((try? FileManager.default.attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date) ?? Date()
+        self.lastModifiedDate = ((try? FileManager.default.attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date)
         self.pagesAspectRatio = Array(repeating: 0.0, count: self.pdfDoc.pageCount)
         self.scene = scene
         
@@ -50,13 +50,21 @@ final class PDFManager: NSObject {
         NSFileCoordinator.removeFilePresenter(self)
     }
     
+    private func closeSceneDueToFileDeletionOrMove() {
+        let options = UIWindowSceneDestructionRequestOptions()
+        options.windowDismissalAnimation = .decline
+        UIApplication.shared.requestSceneSessionDestruction(self.scene.session, options: nil)
+    }
+    
     @objc private func sceneWillEnterForegroundNotification() {
         guard FileManager.default.fileExists(atPath: self.url.path) else {
-            UIApplication.shared.requestSceneSessionDestruction(self.scene.session, options: nil)
+            self.closeSceneDueToFileDeletionOrMove()
             return
         }
 
         NSFileCoordinator.addFilePresenter(self)
+        
+        self.reloadPDFIfChanged()
     }
     
     private func calculateAspectRatios() {
@@ -331,7 +339,7 @@ extension PDFManager: NSFilePresenter {
         .main
     }
     
-    func presentedItemDidChange() {
+    private func reloadPDFIfChanged() {
         var error: NSError? = nil
         NSFileCoordinator().coordinate(readingItemAt: self.url, error: &error) { url in
             guard let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date, date != self.lastModifiedDate else { return }
@@ -342,13 +350,17 @@ extension PDFManager: NSFilePresenter {
         }
     }
     
+    func presentedItemDidChange() {
+        self.reloadPDFIfChanged()
+    }
+    
     func presentedItemDidMove(to newURL: URL) {
-        UIApplication.shared.requestSceneSessionDestruction(scene.session, options: nil)
+        self.closeSceneDueToFileDeletionOrMove()
         UIApplication.openPDF(newURL, requestingScene: scene)
     }
     
     func accommodatePresentedItemDeletion(completionHandler: @escaping (Error?) -> Void) {
-        UIApplication.shared.requestSceneSessionDestruction(scene.session, options: nil)
+        self.closeSceneDueToFileDeletionOrMove()
         completionHandler(nil)
     }
     

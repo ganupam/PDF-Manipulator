@@ -48,6 +48,21 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
         @ObservedObject private var recentlyOpenFilesManager = RecentlyOpenFilesManager.sharedInstance
         @State private var thumbnails = [URL : UIImage]()
         @State private var showAnimatedCheckmark = false
+        @State private var addToExistingPDFURL: URL? = nil
+        
+        private func pages(from url: URL) -> [PDFPage]? {
+            guard url.startAccessingSecurityScopedResource() else { return nil }
+            
+            defer {
+                url.stopAccessingSecurityScopedResource()
+            }
+            
+            guard let doc = PDFDocument(url: url) else { return nil }
+            
+            return (0 ..< doc.pageCount).compactMap {
+                doc.page(at: $0)
+            }
+        }
         
         private func contextMenu(url: URL) -> some View {
             let recentlyOpenedURLs = RecentlyOpenFilesManager.sharedInstance.urls.filter { recentlyOpenedURL in
@@ -57,30 +72,16 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
             return Group {
                 Section("addPagesToRecentFiles") {
                     ForEach(recentlyOpenedURLs, id: \.self) { destinationURL in
-                        if destinationURL != url, let filename = destinationURL.lastPathComponent {
+                        if destinationURL != url {
                             Button {
-                                guard url.startAccessingSecurityScopedResource() else { return }
+                                guard let pages = self.pages(from: url) else { return }
                                 
-                                defer {
-                                    url.stopAccessingSecurityScopedResource()
+                                if destinationURL.addPages(pages) {
+                                    showAnimatedCheckmark = true
                                 }
-                                
-                                guard let doc = PDFDocument(url: url) else { return }
-                                
-                                let pages = (0 ..< doc.pageCount).compactMap {
-                                    doc.page(at: $0)
-                                }
-                                
-                                guard let doc = PDFDocument(url: destinationURL) else { return }
-                                
-                                for page in pages {
-                                    doc.insert(page, at: doc.pageCount)
-                                }
-                                doc.write(to: destinationURL)
-                                showAnimatedCheckmark = true
                             } label: {
                                 Label {
-                                    Text(filename)
+                                    Text(destinationURL.lastPathComponent)
                                 } icon: {
                                     Image(systemName: "plus.rectangle.portrait")
                                 }
@@ -91,7 +92,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                 
                 Section {
                     Button {
-
+                        addToExistingPDFURL = url
                     } label: {
                         Label {
                             Text("addPagesToExistingPDF")
@@ -107,7 +108,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                             RecentlyOpenFilesManager.sharedInstance.removeURL(url)
                         }
                     } label: {
-                        Label("generalRemove", systemImage: "trash")
+                        Label("removeFromList", systemImage: "trash")
                     }
                 }
             }
@@ -179,6 +180,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                         Text(verbatim: "\(url.lastPathComponent)")
                                             .lineLimit(2)
                                             .multilineTextAlignment(.center)
+                                            .truncationMode(.middle)
                                             .padding(.top, 8)
                                             .font(.subheadline)
                                         
@@ -209,12 +211,22 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                     }
                     .overlay {
                         if showAnimatedCheckmark {
-                            AnimatedCheckmark() {
+                            AnimatedCheckmarkWithText() {
                                 showAnimatedCheckmark = false
                             }
-                            .frame(width: 50, height: 50)
-                            .padding(20)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 5))
+                        }
+                    }
+                    .sheet(isPresented: .constant(addToExistingPDFURL != nil)) {
+                        FilePickerView(operationMode: .open(selectableContentTypes: [UTType.pdf])) { destinationURL in
+                            defer {
+                                addToExistingPDFURL = nil
+                            }
+                            
+                            guard let destinationURL, let pages = self.pages(from: addToExistingPDFURL!) else { return }
+
+                            if destinationURL.addPages(pages) {
+                                showAnimatedCheckmark = true
+                            }
                         }
                     }
                 }

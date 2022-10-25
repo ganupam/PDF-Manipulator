@@ -7,22 +7,31 @@
 
 import SwiftUI
 
-struct AnimatedCheckmark: View {
+struct AnimatedCheckmarkWithText: View {
     private(set) var completion: (() -> Void)? = nil
     @State private var innerTrimEnd: CGFloat = 0
 
     var body: some View {
-        Checkmark()
-            .trim(from: 0, to: innerTrimEnd)
-            .stroke(.green, style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round))
-            .onAppear() {
-                withAnimation(.linear(duration: 0.3)) {
-                    innerTrimEnd = 1
+        VStack(spacing: 15) {
+            Checkmark()
+                .trim(from: 0, to: innerTrimEnd)
+                .stroke(.gray, style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round))
+                .frame(height: 50)
+                .onAppear() {
+                    withAnimation(.linear(duration: 0.3)) {
+                        innerTrimEnd = 1
+                    }
+                    0.8.dispatchAsyncToMainQueueAfter {
+                        completion?()
+                    }
                 }
-                0.8.dispatchAsyncToMainQueueAfter {
-                    completion?()
-                }
-            }
+
+            Text("pdfPagesAdded")
+                .font(.title2)
+        }
+        .fixedSize()
+        .padding(20)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 5))
     }
 }
 
@@ -41,9 +50,6 @@ struct Checkmark: Shape {
 
 struct AnimatedCheckmark_Previews: PreviewProvider {
     static var previews: some View {
-        AnimatedCheckmark()
-            .frame(width: 50, height: 50)
-            .padding(20)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 5))
+        AnimatedCheckmarkWithText()
     }
 }

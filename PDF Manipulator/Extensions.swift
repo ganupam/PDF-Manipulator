@@ -149,7 +149,10 @@ extension UIApplication {
         
         if UIApplication.shared.supportsMultipleScenes {
             let session = UIApplication.shared.openSessions.first {
-                $0.userInfo?[.urlBookmarkDataKey] as? Data == bookmarkData
+                guard let data = $0.userInfo?[.urlBookmarkDataKey] as? Data else { return false }
+                
+                var stale = false
+                return (try? URL(resolvingBookmarkData: data, bookmarkDataIsStale: &stale)) == url
             }
             
             let activationOptions = UIWindowScene.ActivationRequestOptions()
@@ -197,6 +200,22 @@ extension URL {
             let docPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first!
             return URL(fileURLWithPath: docPath)
         }
+    }
+    
+    func addPages(_ pages: [PDFPage]) -> Bool {
+        guard self.startAccessingSecurityScopedResource() else { return false }
+        
+        defer {
+            self.stopAccessingSecurityScopedResource()
+        }
+        
+        guard let doc = PDFDocument(url: self) else { return false }
+        
+        for page in pages {
+            doc.insert(page, at: doc.pageCount)
+        }
+        
+        return doc.write(to: self)
     }
 }
 

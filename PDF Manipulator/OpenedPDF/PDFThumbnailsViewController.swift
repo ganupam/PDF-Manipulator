@@ -51,7 +51,9 @@ extension PDFThumbnailsViewController {
         @State private var inSelectionMode = false
         @State private var pdfToExport: URL?
         @State private var identifier: UUID
-        
+        @State private var addPagesToExistingPDFURL: [PDFPage]? = nil
+        @State private var showAnimatedCheckmark = false
+
         private static let horizontalSpacing = 10.0
         private static let verticalSpacing = 15.0
         private static let gridPadding = 15.0
@@ -174,7 +176,7 @@ extension PDFThumbnailsViewController {
 
                 Section {
                     Button {
-
+                        addPagesToExistingPDFURL = pageIndices.compactMap { pdfManager.page(at: $0) }
                     } label: {
                         Label {
                             Text("addSelectedPagesToExistingPDF")
@@ -185,12 +187,16 @@ extension PDFThumbnailsViewController {
                 }
                 
                 Section("addSelectedPagesToRecentFiles") {
-                    ForEach(recentlyOpenedURLs, id: \.self) { url in
+                    ForEach(recentlyOpenedURLs, id: \.self) { destinationURL in
                         Button {
+                            let pages = pageIndices.compactMap { pdfManager.page(at: $0) }
                             
+                            if destinationURL.addPages(pages) {
+                                showAnimatedCheckmark = true
+                            }
                         } label: {
                             Label {
-                                Text(url.lastPathComponent)
+                                Text(destinationURL.lastPathComponent)
                             } icon: {
                                 Image(systemName: "plus.rectangle.portrait")
                             }
@@ -278,13 +284,20 @@ extension PDFThumbnailsViewController {
                 }
                 pageIDs = IDs
             }
+            .overlay {
+                if showAnimatedCheckmark {
+                    AnimatedCheckmarkWithText() {
+                        showAnimatedCheckmark = false
+                    }
+                }
+            }
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar) {
                     if inSelectionMode {
                         Menu {
                             copyPagesSubmenu(pageIndices: isSelected.enumerated().compactMap { $0.1 ? $0.0 : nil })
                         } label: {
-                            Image(systemName: "doc.badge.plus")
+                            Image(systemName: "ellipsis.circle")
                         }
                         .disabled(isSelected.firstIndex(of: true) == nil)
 
@@ -336,6 +349,21 @@ extension PDFThumbnailsViewController {
                         self.dismissSideBar(completion: openPDF)
                     } else {
                         openPDF()
+                    }
+                }
+            }
+            .sheet(isPresented: .constant(addPagesToExistingPDFURL != nil)) {
+                FilePickerView(operationMode: .open(selectableContentTypes: [UTType.pdf])) { destinationURL in
+                    defer {
+                        addPagesToExistingPDFURL = nil
+                    }
+
+                    guard let destinationURL else { return }
+
+                    let pages = addPagesToExistingPDFURL!
+
+                    if destinationURL.addPages(pages) {
+                        showAnimatedCheckmark = true
                     }
                 }
             }

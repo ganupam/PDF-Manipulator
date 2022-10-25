@@ -19,7 +19,7 @@
 "generalDelete" = "Delete";
 "deletePagesConfirmationTitle" = "Do you want to delete %1$d page(s)?";
 "noRecentlyOpenedFiles" = "No recently opened files";
-"generalRemove" = "Remove";
+"removeFromList" = "Remove from list";
 "savePagesAsNewDocument" = "Save as new document";
 "addToDocument" = "Add page(s) to %1$@";
 "addSelectedPagesToExistingPDF" = "Add selected page(s) to existing PDF";
@@ -27,3 +27,4 @@
 "addSelectedPagesToRecentFiles" = "Add selected page(s) to recently opened files";
 "addPagesToRecentFiles" = "Add page(s) to recently opened files";
 "errorOpeningPDF" = "Error opening PDF";
+"pdfPagesAdded" = "Added";
