@@ -172,12 +172,27 @@ extension UIApplication {
                 UIAlertController.show(message: NSLocalizedString("unableToOpen", comment: ""), scene: requestingScene)
                 return
             }
-            
-            let vc = PDFPagesViewController(pdfManager: pdfManager, scene: scene)
+
             let navVC = (scene.keyWindow?.rootViewController as? UINavigationController)
-            navVC?.popToRootViewController(animated: false)
-            navVC?.pushViewController(vc, animated: true)
-            RecentlyOpenFilesManager.sharedInstance.addURL(url)
+            
+            func openPDF() {
+                let vc = PDFPagesViewController(pdfManager: pdfManager, scene: scene)
+                navVC?.pushViewController(vc, animated: true)
+                RecentlyOpenFilesManager.sharedInstance.addURL(url)
+            }
+            
+            guard navVC?.topViewController is RecentlyOpenedPDFsViewController else {
+                let alert = UIAlertController(title: NSLocalizedString("iPhoneOpenPDFConfirmationTitle", comment: ""), message: String(format: NSLocalizedString("iPhoneOpenPDFConfirmationMessage", comment: ""), url.lastPathComponent), preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: NSLocalizedString("generalCancel", comment: ""), style: .cancel))
+                alert.addAction(UIAlertAction(title: NSLocalizedString("generalOK", comment: ""), style: .default) { _ in
+                    navVC?.popToRootViewController(animated: false)
+                    openPDF()
+                })
+                navVC?.present(alert, animated: true)
+                return
+            }
+            
+            openPDF()
         }
     }
     
@@ -226,6 +241,15 @@ extension View {
             self.contextMenu(menuItems: menuItems, preview: preview)
         } else {
             self.contextMenu(menuItems: menuItems)
+        }
+    }
+    
+    @ViewBuilder
+    func ifTrue<T: View>(_ condition: @autoclosure () -> Bool, apply:(Self) -> T) -> some View {
+        if condition() {
+            apply(self) // 'Self' is not convertible to 'T'
+        } else {
+            self
         }
     }
 }

@@ -34,3 +34,5 @@
 "adRemovalTitle" = "Remove ads for %1$@";
 "deferredTransaction" = "Waiting for Approval";
 "restorePurchases" = "Restore Purchases";
+"iPhoneOpenPDFConfirmationTitle" = "Open PDF";
+"iPhoneOpenPDFConfirmationMessage" = "Would you like to open PDF %1$@?";

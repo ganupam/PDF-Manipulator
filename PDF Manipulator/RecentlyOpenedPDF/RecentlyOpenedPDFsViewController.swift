@@ -119,33 +119,96 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
             }
         }
         
+        private var noRecentlyOpnedFilesView: some View {
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                
+                Image(systemName: "clock")
+                    .font(.system(size: 60))
+                    .foregroundColor(.gray)
+                    .padding(.bottom, 10)
+                
+                Text("noRecentlyOpenedFiles")
+                    .bold()
+                    .padding(.bottom, 2)
+                
+                HStack(spacing: 0) {
+                    Text("Tap on ")
+                    
+                    Image(systemName: "folder")
+
+                    Text(" at the top to open a PDF file")
+                }
+                .font(.subheadline)
+                .foregroundColor(.gray)
+
+                Spacer(minLength: 0)
+            }
+        }
+        
+        private func imageView(url: URL) -> some View {
+            Image(uiImage: thumbnails[url] ?? UIImage())
+                .ifTrue(thumbnails[url] == nil) {
+                    $0.resizable()
+                }
+                .border(.gray, width: 0.5)
+                .frame(width: thumbnails[url] == nil ? Self.thumbnailHeight : nil, height: Self.thumbnailHeight)
+                .overlay {
+                    if thumbnails[url] == nil {
+                        Text("pdf")
+                            .font(.title3)
+                            .foregroundColor(.blue)
+                            .bold()
+                    }
+                }
+        }
+        
+        private func lazyVGrid(containerSize: CGSize) -> some View {
+            LazyVGrid(columns: gridItems(containerWidth: containerSize.width), spacing: 25) {
+                ForEach(recentlyOpenFilesManager.urls, id: \.self) { url in
+                    VStack(spacing: 0) {
+                        imageView(url: url)
+                            .onDrag {
+                                let itemProvider = NSItemProvider(item: url as NSURL, typeIdentifier: UTType.pdf.identifier)// NSItemProvider(contentsOf: url)!
+                                
+                                // Support for drag-drop to create new window scene.
+                                let activity = NSUserActivity(activityType: .openPDFUserActivityType)
+                                activity.userInfo = [String.urlBookmarkDataKey : try! url.bookmarkData()]
+                                itemProvider.registerObject(activity, visibility: .all)
+                                itemProvider.suggestedName = url.lastPathComponent
+                                return itemProvider
+                            }
+                            .contextMenu {
+                                contextMenu(url: url)
+                            }
+                        
+                        Text(verbatim: "\(url.lastPathComponent)")
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .truncationMode(.middle)
+                            .padding(.top, 8)
+                            .font(.subheadline)
+                        
+                        Text(verbatim: "\(size(of: url))")
+                            .lineLimit(1)
+                            .padding(.top, 3)
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        Spacer(minLength: 0)
+                    }
+                    .onTapGesture {
+                        UIApplication.openPDF(url, requestingScene: self.scene)
+                    }
+                }
+            }
+            .padding([.horizontal, .bottom], Self.horizontalSpacing)
+        }
+        
         var body: some View {
             Group {
                 if recentlyOpenFilesManager.urls.count == 0 {
-                    VStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        
-                        Image(systemName: "clock")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                            .padding(.bottom, 10)
-                        
-                        Text("noRecentlyOpenedFiles")
-                            .bold()
-                            .padding(.bottom, 2)
-                        
-                        HStack(spacing: 0) {
-                            Text("Tap on ")
-                            
-                            Image(systemName: "folder")
-
-                            Text(" at the top to open a PDF file")
-                        }
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-
-                        Spacer(minLength: 0)
-                    }
+                    noRecentlyOpnedFilesView
                 } else {
                     GeometryReader { reader in
                         VStack {
@@ -162,48 +225,8 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                     Spacer()
                                 }
                                 .padding(.top, 20)
-                                
-                                LazyVGrid(columns: gridItems(containerWidth: reader.size.width), spacing: 25) {
-                                    ForEach(recentlyOpenFilesManager.urls, id: \.self) { url in
-                                        VStack(spacing: 0) {
-                                            Image(uiImage: thumbnails[url] ?? UIImage())
-                                                .border(.gray, width: 0.5)
-                                                .frame(width: thumbnails[url] == nil ? Self.thumbnailHeight : nil, height: Self.thumbnailHeight)
-                                                .onDrag {
-                                                    let itemProvider = NSItemProvider(item: url as NSURL, typeIdentifier: UTType.pdf.identifier)// NSItemProvider(contentsOf: url)!
-                                                    
-                                                    // Support for drag-drop to create new window scene.
-                                                    let activity = NSUserActivity(activityType: .openPDFUserActivityType)
-                                                    activity.userInfo = [String.urlBookmarkDataKey : try! url.bookmarkData()]
-                                                    itemProvider.registerObject(activity, visibility: .all)
-                                                    itemProvider.suggestedName = url.lastPathComponent
-                                                    return itemProvider
-                                                }
-                                                .contextMenu {
-                                                    contextMenu(url: url)
-                                                }
-                                            
-                                            Text(verbatim: "\(url.lastPathComponent)")
-                                                .lineLimit(2)
-                                                .multilineTextAlignment(.center)
-                                                .truncationMode(.middle)
-                                                .padding(.top, 8)
-                                                .font(.subheadline)
-                                            
-                                            Text(verbatim: "\(size(of: url))")
-                                                .lineLimit(1)
-                                                .padding(.top, 3)
-                                                .font(.caption)
-                                                .foregroundColor(.gray)
-                                            
-                                            Spacer(minLength: 0)
-                                        }
-                                        .onTapGesture {
-                                            UIApplication.openPDF(url, requestingScene: self.scene)
-                                        }
-                                    }
-                                }
-                                .padding([.horizontal, .bottom], Self.horizontalSpacing)
+
+                                lazyVGrid(containerSize: reader.size)
                             }
                             .animation(.linear(duration: 0.2), value: recentlyOpenFilesManager.urls)
                             .onReceive(NotificationCenter.default.publisher(for: RecentlyOpenFilesManager.URLAddedNotification)) { notification in
