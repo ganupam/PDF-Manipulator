@@ -109,8 +109,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         @State private var showAd = (StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState != .purchased)
 
         private static let verticalSpacing = 10.0
-        private static let gridPadding = 20.0
-        
+        private static let gridPadding = (UIDevice.current.userInterfaceIdiom == .phone ? 10.0 : 20.0)
         
         init(scene: UIWindowScene, parentViewController: UIViewController?, pdfManager: PDFManager, displayScale: Double) {
             self.scene = scene
