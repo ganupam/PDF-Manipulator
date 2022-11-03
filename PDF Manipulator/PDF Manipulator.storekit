@@ -1,16 +1,16 @@
 {
-  "identifier" : "E5C8DC70",
+  "identifier" : "E1787186",
   "nonRenewingSubscriptions" : [
 
   ],
   "products" : [
     {
-      "displayPrice" : "1.99",
+      "displayPrice" : "2.99",
       "familyShareable" : false,
-      "internalID" : "6444014425",
+      "internalID" : "6444192903",
       "localizations" : [
         {
-          "description" : "Get rid of the ads!",
+          "description" : "Get rid of Ads!",
           "displayName" : "Remove Ads",
           "locale" : "en_US"
         }
@@ -21,11 +21,9 @@
     }
   ],
   "settings" : {
-    "_applicationInternalID" : "6443783145",
-    "_askToBuyEnabled" : false,
-    "_billingIssuesEnabled" : false,
-    "_developerTeamID" : "N6J3SCU25X",
-    "_lastSynchronizedDate" : 688433406.51115501
+    "_applicationInternalID" : "6444193030",
+    "_developerTeamID" : "H74EYQDPHH",
+    "_lastSynchronizedDate" : 689189340.00862598
   },
   "subscriptionGroups" : [
 
