@@ -12,19 +12,31 @@ import QuickLookThumbnailing
 import Combine
 import PDFKit
 
-final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpenedPDFsViewController.RecentlyOpenedPDFsView> {
+final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpenedPDFsViewController.RecentlyOpenedPDFsView>, TooltipViewDelegate {
     unowned let scene: UIWindowScene
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("Not implemented")
     }
     
+    private var tooltipView: TooltipView?
+    private var openFileButtonFrame = CGRect.zero
+    @UserDefaultsBackedReadWriteProperty(userDefaultsKey: "RecentlyOpenedPDFsViewController.tutorialTapToOpenPDFShownOnce", defaultValue: false) var tutorialShownOnce
+    
     init(scene: UIWindowScene) {
         self.scene = scene
         
-        super.init(rootView: RecentlyOpenedPDFsView(scene: scene, parentViewController: nil))
+        super.init(rootView: RecentlyOpenedPDFsView(scene: scene, parentViewController: nil, openFileButtonFrameBinding: nil))
         
-        self.rootView = RecentlyOpenedPDFsView(scene: scene, parentViewController: self)
+        self.rootView = RecentlyOpenedPDFsView(scene: scene, parentViewController: self, openFileButtonFrameBinding: Binding(get: {
+            self.openFileButtonFrame
+        }, set: {
+            self.openFileButtonFrame = $0
+            if let tooltipView = self.tooltipView {
+                tooltipView.dismiss(animated: false)
+                self.showTutorial()
+            }
+        }))
     }
     
     override func viewDidLoad() {
@@ -39,10 +51,35 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
     }
     
+    func didDismiss(_: TooltipView) {
+        self.tooltipView = nil
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        guard !self.tutorialShownOnce else { return }
+        
+        self.showTutorial()
+        self.tutorialShownOnce = true
+    }
+    
+    private func showTutorial() {
+        var config = TooltipView.Configuration()
+        config.title = NSAttributedString(string: NSLocalizedString("tutorialTapToOpenPDF", comment: ""))
+        config.arrowPointingTo = CGPoint(x: self.openFileButtonFrame.midX + 4, y: self.openFileButtonFrame.maxY)
+        config.arrowDirection = .up
+        let tooltip = TooltipView(configuration: config)
+        tooltip.tooltipViewDelegate = self
+        self.tooltipView = tooltip
+        tooltip.show(in: self.navigationController!.view, tooltipWidth: nil)
+    }
+    
     struct RecentlyOpenedPDFsView: View {
         unowned let scene: UIWindowScene
         unowned let parentViewController: UIViewController?
-
+        var openFileButtonFrameBinding: Binding<CGRect>?
+        
         private static let horizontalSpacing = 15.0
         private static let minimumColumnWidth = 110.0
         private static let thumbnailHeight = 110.0
@@ -292,6 +329,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                     }
                 }
             }
+            .coordinateSpace(name: "rootView")
             .navigationTitle("PDF Manipulator")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -299,6 +337,12 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                         showingFilePicker = true
                     } label: {
                         Image(systemName: "folder")
+                    }
+                    .overlay {
+                        GeometryReader { reader in
+                            Color.clear
+                                .preference(key: FramePreferenceKey.self, value: reader.frame(in: .named("rootView")))
+                        }
                     }
                 }
             }
@@ -308,6 +352,9 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                     
                     UIApplication.openPDF(url, requestingScene: self.scene)
                 }
+            }
+            .onPreferenceChange(FramePreferenceKey.self) { frame in
+                openFileButtonFrameBinding?.wrappedValue = frame
             }
         }
         

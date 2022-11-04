@@ -38,6 +38,12 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
     static func reduce(value: inout CGPoint, nextValue: () -> CGPoint) {}
 }
 
+struct FramePreferenceKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) { value = nextValue() }
+}
+
 /*
 struct ScrollViewWithDidScroll<Content: View>: View {
     let axes: Axis.Set
@@ -250,6 +256,54 @@ extension View {
             apply(self) // 'Self' is not convertible to 'T'
         } else {
             self
+        }
+    }
+}
+
+extension NSAttributedString {
+    private func attributedString(byRemovingAttributes attributes: [NSAttributedString.Key]) -> NSAttributedString {
+        let attribString = NSMutableAttributedString()
+        self.enumerateAttributes(in: NSRange(location: 0, length: self.length)) { attrs, range, stop in
+            var dict = attrs
+            attributes.forEach {
+                dict.removeValue(forKey: $0)
+            }
+            attribString.append(NSAttributedString(string: self.string, attributes: dict))
+        }
+        
+        return attribString
+    }
+
+    func calculateSizeForMultilineDrawing(with maxWidth: CGFloat) -> CGSize {
+        let str = self.attributedString(byRemovingAttributes: [NSAttributedString.Key.paragraphStyle])
+        let rectBound = str.boundingRect(with: CGSize(width: maxWidth, height: 1000), options: .usesLineFragmentOrigin, context: nil)
+        return CGSize(width: ceil(rectBound.size.width), height: ceil(rectBound.size.height))
+    }
+    
+    func calculateSizeForSingleLineDrawing(with maxWidth: CGFloat) -> CGSize {
+        let str = self.attributedString(byRemovingAttributes: [NSAttributedString.Key.paragraphStyle])
+        let rectBound = str.boundingRect(with: CGSize(width: maxWidth, height: 1000), context: nil)
+        return CGSize(width: ceil(rectBound.size.width), height: ceil(rectBound.size.height))
+    }
+}
+
+@propertyWrapper
+struct UserDefaultsBackedReadWriteProperty<Type> {
+    private(set) var userDefaultsKey: String
+    private(set) var defaultValue: Type
+    
+    var wrappedValue: Type {
+        get {
+            (UserDefaults.standard.object(forKey: self.userDefaultsKey) as? Type) ?? self.defaultValue
+        }
+        
+        nonmutating set {
+            if case Optional<Any>.none = newValue as Any {
+                UserDefaults.standard.removeObject(forKey: self.userDefaultsKey)
+            } else {
+                UserDefaults.standard.set(newValue, forKey: self.userDefaultsKey)
+            }
+            UserDefaults.standard.synchronize()
         }
     }
 }

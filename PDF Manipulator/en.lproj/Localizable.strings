@@ -36,3 +36,4 @@
 "restorePurchases" = "Restore Purchases";
 "iPhoneOpenPDFConfirmationTitle" = "Open PDF";
 "iPhoneOpenPDFConfirmationMessage" = "Would you like to open PDF %1$@?";
+"tutorialTapToOpenPDF" = "Tap to open a PDF file";
