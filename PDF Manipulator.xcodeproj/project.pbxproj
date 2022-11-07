@@ -38,6 +38,7 @@
 		6E05F02F29146DF2009F827F /* TooltipView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TooltipView.swift; sourceTree = "<group>"; };
 		6E05F03129146E38009F827F /* SHUTouchesInterceptorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SHUTouchesInterceptorView.swift; sourceTree = "<group>"; };
 		6E1DFEFA28EF84140096F309 /* Common.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Common.swift; sourceTree = "<group>"; };
+		6E36CE172915DA7B00BBC2BE /* SwiftUITooltipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITooltipView.swift; sourceTree = "<group>"; };
 		6E5B04BB28D0996D00D5F25A /* FilePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePickerView.swift; sourceTree = "<group>"; };
 		6E5B04BD28D099BC00D5F25A /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		6E84D98228EB8D300034C170 /* PDFManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFManager.swift; sourceTree = "<group>"; };
@@ -163,6 +164,7 @@
 			children = (
 				6EBFEF9D2903630400EA9A3B /* AnimatedCheckmark.swift */,
 				6ECC64302908844900D8542B /* GoogleADBannerView.swift */,
+				6E36CE172915DA7B00BBC2BE /* SwiftUITooltipView.swift */,
 			);
 			path = "SwiftUI Views";
 			sourceTree = "<group>";

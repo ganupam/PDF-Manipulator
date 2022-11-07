@@ -124,58 +124,62 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         @inline(__always) private var pdfPagesViewController: PDFPagesViewController {
             self.parentViewController as! PDFPagesViewController
         }
+        
+        private func scrollView(size: CGSize) -> some View {
+            ScrollViewReader { scrollReader in
+                ScrollView(scaleFactor == 1.0 ? .vertical : [.horizontal, .vertical], showsIndicators: scaleFactor == 1.0) {
+                    LazyVStack(spacing: Self.verticalSpacing) {
+                        ForEach(0 ..< pdfManager.pageCount, id: \.self) { pageIndex in
+                            createList(width: (size.width - (Self.gridPadding * 2)), pageIndex: pageIndex)
+                                .frame(width: (size.width - (Self.gridPadding * 2)) * scaleFactor, height: pdfManager.pagesAspectRatio[pageIndex] * (size.width - (Self.gridPadding * 2)) * scaleFactor)
+                                .overlay {
+                                    GeometryReader { geometry in
+                                        Color.clear.preference(
+                                            key: ScrollOffsetPreferenceKey.self,
+                                            value: geometry.frame(in: .named("scrollView")).origin
+                                        )
+                                    }
+                                }
+                                .onPreferenceChange(ScrollOffsetPreferenceKey.self) {
+                                    guard !disablePostingActivePageIndexNotification, $0.y > 0 && $0.y < size.height / 2 && activePageIndex != pageIndex else { return }
+                                    
+                                    activePageIndex = pageIndex
+                                    NotificationCenter.default.post(name: Common.activePageChangedNotification, object: identifier, userInfo: [Common.activePageIndexKey : activePageIndex, Common.pdfURLKey : self.pdfManager.url])
+                                }
+                                .id(pageIndex)
+                        }
+                    }
+                    .padding(Self.gridPadding)
+                }
+                .gesture(MagnificationGesture().onChanged { newValue in
+                    scaleFactor = max(previousScaleFactor * newValue, 1)
+                }.onEnded { _ in
+                    previousScaleFactor = scaleFactor
+                })
+                .onReceive(NotificationCenter.default.publisher(for: Common.activePageChangedNotification)) { notification in
+                    guard notification.object as? UUID != self.identifier, notification.userInfo?[Common.pdfURLKey] as? URL == self.pdfManager.url, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
+                    
+                    disablePostingActivePageIndexNotification = true
+                    withAnimation(.linear(duration: 0.1)) {
+                        scrollReader.scrollTo(pageIndex, anchor: UnitPoint(x: 0, y: -0.2))
+                    }
+                    Timer.scheduledTimer(withTimeInterval: 1, repeats: false) { _ in
+                        disablePostingActivePageIndexNotification = false
+                    }
+                }
+                .coordinateSpace(name: "scrollView")
+            }
+            .background(.gray)
+            .onReceive(NotificationCenter.default.publisher(for: StoreKitManager.purchaseStateChanged)) { _ in
+                showAd = (StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState != .purchased)
+            }
+        }
 
         var body: some View {
             GeometryReader { reader in
                 VStack(spacing: 0) {
                     if reader.size.width != 0 {
-                        ScrollViewReader { scrollReader in
-                            ScrollView(scaleFactor == 1.0 ? .vertical : [.horizontal, .vertical], showsIndicators: scaleFactor == 1.0) {
-                                LazyVStack(spacing: Self.verticalSpacing) {
-                                    ForEach(0 ..< pdfManager.pageCount, id: \.self) { pageIndex in
-                                        createList(width: (reader.size.width - (Self.gridPadding * 2)), pageIndex: pageIndex)
-                                            .frame(width: (reader.size.width - (Self.gridPadding * 2)) * scaleFactor, height: pdfManager.pagesAspectRatio[pageIndex] * (reader.size.width - (Self.gridPadding * 2)) * scaleFactor)
-                                            .overlay {
-                                                GeometryReader { geometry in
-                                                    Color.clear.preference(
-                                                        key: ScrollOffsetPreferenceKey.self,
-                                                        value: geometry.frame(in: .named("scrollView")).origin
-                                                    )
-                                                }
-                                            }
-                                            .onPreferenceChange(ScrollOffsetPreferenceKey.self) {
-                                                guard !disablePostingActivePageIndexNotification, $0.y > 0 && $0.y < reader.size.height / 2 && activePageIndex != pageIndex else { return }
-                                                
-                                                activePageIndex = pageIndex
-                                                NotificationCenter.default.post(name: Common.activePageChangedNotification, object: identifier, userInfo: [Common.activePageIndexKey : activePageIndex, Common.pdfURLKey : self.pdfManager.url])
-                                            }
-                                            .id(pageIndex)
-                                    }
-                                }
-                                .padding(Self.gridPadding)
-                            }
-                            .gesture(MagnificationGesture().onChanged { newValue in
-                                scaleFactor = max(previousScaleFactor * newValue, 1)
-                            }.onEnded { _ in
-                                previousScaleFactor = scaleFactor
-                            })
-                            .onReceive(NotificationCenter.default.publisher(for: Common.activePageChangedNotification)) { notification in
-                                guard notification.object as? UUID != self.identifier, notification.userInfo?[Common.pdfURLKey] as? URL == self.pdfManager.url, let pageIndex = notification.userInfo?[Common.activePageIndexKey] as? Int else { return }
-                                
-                                disablePostingActivePageIndexNotification = true
-                                withAnimation(.linear(duration: 0.1)) {
-                                    scrollReader.scrollTo(pageIndex, anchor: UnitPoint(x: 0, y: -0.2))
-                                }
-                                Timer.scheduledTimer(withTimeInterval: 1, repeats: false) { _ in
-                                    disablePostingActivePageIndexNotification = false
-                                }
-                            }
-                            .coordinateSpace(name: "scrollView")
-                        }
-                        .background(.gray)
-                        .onReceive(NotificationCenter.default.publisher(for: StoreKitManager.purchaseStateChanged)) { _ in
-                            showAd = (StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState != .purchased)
-                        }
+                        scrollView(size: reader.size)
                     }
                     
                     if showAd {
