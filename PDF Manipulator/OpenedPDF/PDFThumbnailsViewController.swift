@@ -204,6 +204,10 @@ extension PDFThumbnailsViewController {
             }
         }
         
+        private func fakePageHeight(size: CGSize) -> CGFloat {
+            (pdfManager.pagesAspectRatio.first ?? 1.29) * (size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2
+        }
+        
         private var mainBody: some View {
             GeometryReader { reader in
                 if reader.size.width == 0 {
@@ -217,8 +221,10 @@ extension PDFThumbnailsViewController {
                                         VStack(spacing: 0) {
                                             Color.gray.opacity(0.5)
                                                 .border(.black, width: 0.5)
-                                                .frame(height: 1.29 * (reader.size.width - (Self.gridPadding * 2) - Self.horizontalSpacing - 10) / 2)
-                                            
+                                                .frame(height: fakePageHeight(size: reader.size))
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 5)
+
                                             Spacer()
                                         }
                                     } else {
