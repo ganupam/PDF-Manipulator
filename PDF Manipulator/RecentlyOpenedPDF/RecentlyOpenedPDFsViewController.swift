@@ -147,8 +147,10 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
 
                 Section {
                     Button(role: .destructive) {
-                        withAnimation {
-                            RecentlyOpenFilesManager.sharedInstance.removeURL(url)
+                        0.6.dispatchAsyncToMainQueueAfter {
+                            withAnimation {
+                                RecentlyOpenFilesManager.sharedInstance.removeURL(url)
+                            }
                         }
                     } label: {
                         Label("removeFromList", systemImage: "trash")
