@@ -39,9 +39,11 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 }
 
 struct FramePreferenceKey: PreferenceKey {
-    static var defaultValue: CGRect = .zero
+    static var defaultValue: [String : CGRect] = [:]
     
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) { value = nextValue() }
+    static func reduce(value: inout [String : CGRect], nextValue: () -> [String : CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
 }
 
 /*

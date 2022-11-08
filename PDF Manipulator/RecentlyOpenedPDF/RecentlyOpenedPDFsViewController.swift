@@ -341,7 +341,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                     .overlay {
                         GeometryReader { reader in
                             Color.clear
-                                .preference(key: FramePreferenceKey.self, value: reader.frame(in: .named("rootView")))
+                                .preference(key: FramePreferenceKey.self, value: ["open" : reader.frame(in: .named("rootView"))])
                         }
                     }
                 }
@@ -354,7 +354,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                 }
             }
             .onPreferenceChange(FramePreferenceKey.self) { frame in
-                openFileButtonFrameBinding?.wrappedValue = frame
+                openFileButtonFrameBinding?.wrappedValue = frame["open", default: .zero]
             }
         }
         

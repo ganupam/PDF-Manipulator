@@ -45,6 +45,8 @@ final class TooltipView: SHUTouchesInterceptorView {
         var tooltipCenterOffsetXFromArrowCenterX: CGFloat = 0
         var backgroundColor: UIColor = .init(red: 7.0/255, green: 125.0/255, blue: 1, alpha: 1)
         var padding: CGFloat = Configuration.defaultPadding
+        var multilineTextAlignment = NSTextAlignment.left
+        var containerViewBackgroundColor = UIColor.clear
     }
     
     private(set) var configuration: Configuration
@@ -84,6 +86,7 @@ final class TooltipView: SHUTouchesInterceptorView {
         title.translatesAutoresizingMaskIntoConstraints = false
         title.setContentHuggingPriority(UILayoutPriority(rawValue: 999), for: .horizontal)
         title.setContentCompressionResistancePriority(.required, for: .horizontal)
+        title.textAlignment = self.configuration.multilineTextAlignment
         title.numberOfLines = 0
         return title
     }()
@@ -96,6 +99,7 @@ final class TooltipView: SHUTouchesInterceptorView {
         subtitle.translatesAutoresizingMaskIntoConstraints = false
         subtitle.setContentHuggingPriority(UILayoutPriority(rawValue: 999), for: .horizontal)
         subtitle.setContentCompressionResistancePriority(.required, for: .horizontal)
+        subtitle.textAlignment = self.configuration.multilineTextAlignment
         subtitle.numberOfLines = 0
         return subtitle
     }()
@@ -165,6 +169,7 @@ final class TooltipView: SHUTouchesInterceptorView {
         let viewForBounds = viewForBounds ?? parentView
         self.frame = viewForBounds.bounds
         
+        self.backgroundColor = self.configuration.containerViewBackgroundColor
         parentView.addSubview(self)
         
         self.layer.addSublayer(self.arrowLayer)

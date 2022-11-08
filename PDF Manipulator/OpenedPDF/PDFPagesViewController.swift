@@ -10,23 +10,99 @@ import SwiftUI
 import PDFKit
 import QuickLook
 
-final class PDFPagesViewController: UIHostingController<PDFPagesViewController.OuterPDFMainView> {
+final class PDFPagesViewController: UIHostingController<PDFPagesViewController.PDFMainView>, TooltipViewDelegate {
     let pdfManager: PDFManager
     unowned let scene: UIWindowScene
-    
+    private var tutorialFrames = [String : CGRect]()
+    private var tooltipView = [TooltipView]()
+    @UserDefaultsBackedReadWriteProperty(userDefaultsKey: "PDFPagesViewController.tutorialShownOnce", defaultValue: false) var tutorialShownOnce
+
     private var presentationManager: PresentationManager?
     
     init(pdfManager: PDFManager, scene: UIWindowScene) {
         self.pdfManager = pdfManager
         self.scene = scene
         
-        super.init(rootView: OuterPDFMainView(pdfManager: pdfManager, scene: scene, pdfPagesVC: nil))
+        super.init(rootView: PDFMainView(scene: scene, parentViewController: nil, pdfManager: pdfManager, displayScale: 2.0, tutorialFrames: nil))
         
-        self.rootView = OuterPDFMainView(pdfManager: pdfManager, scene: scene, pdfPagesVC: self)
+        self.rootView = PDFMainView(scene: scene, parentViewController: self, pdfManager: pdfManager, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0), tutorialFrames: Binding(get: {
+            self.tutorialFrames
+        }, set: {
+            self.tutorialFrames = $0
+            
+            if !self.tooltipView.isEmpty {
+                self.tooltipView.forEach {
+                    $0.dismiss(animated: false)
+                }
+                self.showTutorial()
+            }
+        }))
     }
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    func didDismiss(_: TooltipView) {
+        self.tooltipView.removeAll()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        guard !self.tutorialShownOnce else { return }
+        
+        self.showTutorial()
+        self.tutorialShownOnce = true
+    }
+    
+    private func showTutorial() {
+        var containerViewBackgroundColor = UIColor.black.withAlphaComponent(0.3)
+        
+        self.tutorialFrames.forEach { (key, rect) in
+            var config = TooltipView.Configuration()
+            let localizationKey: String
+            let arrowHeight: Double
+            
+            switch key {
+            case "edit":
+                localizationKey = "pdfPagesTutorialEdit"
+                arrowHeight = 20
+                
+            case "addPages":
+                localizationKey = "pdfPagesTutorialAddNewPage"
+                arrowHeight = 80
+
+            case "thumbnails":
+                localizationKey = "pdfPagesTutorialSidebar"
+                arrowHeight = 140
+
+            default:
+                localizationKey = ""
+                arrowHeight = 0
+            }
+            config.title = NSAttributedString(string: NSLocalizedString(localizationKey, comment: ""))
+            config.arrowPointingTo = CGPoint(x: rect.midX, y: rect.maxY)
+            config.arrowDirection = .up
+            config.arrowHeight = arrowHeight
+            config.containerViewBackgroundColor = containerViewBackgroundColor
+            
+            if key == "edit" {
+                config.tooltipCenterOffsetXFromArrowCenterX = -60
+            }
+            if key == "addPages" && UIDevice.current.userInterfaceIdiom == .pad {
+                config.tooltipCenterOffsetXFromArrowCenterX = -40
+            }
+            if key == "thumbnails" {
+                config.multilineTextAlignment = .center
+            }
+            
+            containerViewBackgroundColor = UIColor.clear
+            let tooltip = TooltipView(configuration: config)
+            tooltip.tooltipViewDelegate = self
+            self.tooltipView.append(tooltip)
+            tooltip.show(in: self.navigationController!.view, tooltipWidth: nil)
+        }
     }
     
     fileprivate func showSidebar(presentSideBarInteractively: Bool) {
@@ -81,21 +157,12 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         }
     }
 
-    struct OuterPDFMainView: View {
-        let pdfManager: PDFManager
-        unowned let scene: UIWindowScene
-        unowned let pdfPagesVC: PDFPagesViewController?
-        
-        var body: some View {
-            PDFMainView(scene: scene, parentViewController: pdfPagesVC, pdfManager: pdfManager, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0))
-        }
-    }
-    
-    private struct PDFMainView: View {
+    struct PDFMainView: View {
         let pdfManager: PDFManager
         unowned let scene: UIWindowScene
         unowned let parentViewController: UIViewController?
-
+        let tutorialFrames: Binding<[String : CGRect]>?
+        
         @StateObject private var pagesModel: PDFPagesModel
         @State private var activePageIndex = 0
         @State private var disablePostingActivePageIndexNotification = false
@@ -111,10 +178,12 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
         private static let verticalSpacing = 10.0
         private static let gridPadding = (UIDevice.current.userInterfaceIdiom == .phone ? 10.0 : 20.0)
         
-        init(scene: UIWindowScene, parentViewController: UIViewController?, pdfManager: PDFManager, displayScale: Double) {
+        init(scene: UIWindowScene, parentViewController: UIViewController?, pdfManager: PDFManager, displayScale: Double, tutorialFrames: Binding<[String : CGRect]>?) {
             self.scene = scene
             self.parentViewController = parentViewController
             self.pdfManager = pdfManager
+            self.tutorialFrames = tutorialFrames
+            
             let uuid = UUID()
             _identifier = State(initialValue: uuid)
             let pdfPagesModel = pdfManager.getPDFPagesModel(identifier: uuid, displayScale: displayScale)
@@ -191,6 +260,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                     }
                 }
             }
+            .coordinateSpace(name: "rootView")
             .sheet(isPresented: $showDocumentPicker) {
                 FilePickerView(operationMode: .open(selectableContentTypes: Common.supportedDroppedItemProviders)) { url in
                     guard let url, let type = UTType(tag: url.pathExtension, tagClass: .filenameExtension, conformingTo: nil) else { return }
@@ -223,11 +293,23 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                     } label: {
                         Image(systemName: "pencil")
                     }
+                    .overlay {
+                        GeometryReader { reader in
+                            Color.clear
+                                .preference(key: FramePreferenceKey.self, value: ["edit" : reader.frame(in: .named("rootView"))])
+                        }
+                    }
 
                     Button {
                         showDocumentPicker = true
                     } label: {
                         Image(systemName: "plus.rectangle.portrait")
+                    }
+                    .overlay {
+                        GeometryReader { reader in
+                            Color.clear
+                                .preference(key: FramePreferenceKey.self, value: ["addPages" : reader.frame(in: .named("rootView"))])
+                        }
                     }
 
                     if UIDevice.current.userInterfaceIdiom == .pad {
@@ -244,8 +326,17 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.O
                         } label: {
                             Image(systemName: "sidebar.squares.right")
                         }
+                        .overlay {
+                            GeometryReader { reader in
+                                Color.clear
+                                    .preference(key: FramePreferenceKey.self, value: ["thumbnails" : reader.frame(in: .named("rootView"))])
+                            }
+                        }
                     }
                 }
+            }
+            .onPreferenceChange(FramePreferenceKey.self) {
+                tutorialFrames?.wrappedValue = $0
             }
         }
         

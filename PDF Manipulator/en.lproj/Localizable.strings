@@ -37,3 +37,6 @@
 "iPhoneOpenPDFConfirmationTitle" = "Open PDF";
 "iPhoneOpenPDFConfirmationMessage" = "Would you like to open PDF %1$@?";
 "tutorialTapToOpenPDF" = "Tap to open a PDF file";
+"pdfPagesTutorialEdit" = "Fill/Markup the PDF";
+"pdfPagesTutorialAddNewPage" = "Add pages from existing PDF";
+"pdfPagesTutorialSidebar" = "Tap to see page thumbnails and rearrange pages with drag/drop";
