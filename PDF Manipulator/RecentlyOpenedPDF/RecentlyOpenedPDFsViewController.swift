@@ -91,6 +91,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
         @State private var addToExistingPDFURL: URL? = nil
         @State private var adSize = CGSize.zero
         @State private var adRemovalTransactionState = StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState
+        @State private var selectedURL: URL?
         
         private func pages(from url: URL) -> [PDFPage]? {
             guard url.startAccessingSecurityScopedResource() else { return nil }
@@ -188,8 +189,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                 .ifTrue(thumbnails[url] == nil) {
                     $0.resizable()
                 }
-                .border(.gray, width: 0.5)
-                .frame(width: thumbnails[url] == nil ? Self.thumbnailHeight : nil, height: Self.thumbnailHeight)
+                .border(url == selectedURL ? .blue : .gray, width: url == selectedURL ? 2 : 0.5)
                 .overlay {
                     if thumbnails[url] == nil {
                         Text("pdf")
@@ -198,6 +198,21 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                             .bold()
                     }
                 }
+                .overlay {
+                    if selectedURL == url {
+                        Color.black.opacity(0.2)
+                        
+                        Menu {
+                            contextMenu(url: url)
+                        } label: {
+                            Image(systemName: "ellipsis.circle.fill")
+                                .font(.system(size: 25))
+                                .tint(.white)
+                        }
+                        .frame(width: 44, height: 44)
+                    }
+                }
+                .frame(width: thumbnails[url] == nil ? Self.thumbnailHeight : nil, height: Self.thumbnailHeight)
         }
         
         private func lazyVGrid(containerSize: CGSize) -> some View {
@@ -235,7 +250,16 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                         Spacer(minLength: 0)
                     }
                     .onTapGesture {
-                        UIApplication.openPDF(url, requestingScene: self.scene)
+                        guard let selectedURL else {
+                            UIApplication.openPDF(url, requestingScene: self.scene)
+                            return
+                        }
+                        
+                        if selectedURL != url {
+                            withAnimation(.linear(duration: 0.1)) {
+                                self.selectedURL = url
+                            }
+                        }
                     }
                 }
             }
@@ -244,7 +268,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
         
         var body: some View {
             Group {
-                if recentlyOpenFilesManager.urls.count == 0 {
+                if recentlyOpenFilesManager.urls.isEmpty {
                     noRecentlyOpnedFilesView
                 } else {
                     GeometryReader { reader in
@@ -332,6 +356,20 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
             .coordinateSpace(name: "rootView")
             .navigationTitle("PDF Manipulator")
             .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if !recentlyOpenFilesManager.urls.isEmpty {
+                        Button(selectedURL == nil ? "selectPages" : "generalDone") {
+                            withAnimation(Animation.linear(duration: 0.2)) {
+                                if selectedURL == nil {
+                                    selectedURL = recentlyOpenFilesManager.urls.first
+                                } else {
+                                    selectedURL = nil
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showingFilePicker = true
