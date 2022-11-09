@@ -43,7 +43,7 @@ final class TooltipView: SHUTouchesInterceptorView {
         var arrowDirection: ArrowDirection = .up
         var arrowHeight: CGFloat = 20.0
         var tooltipCenterOffsetXFromArrowCenterX: CGFloat = 0
-        var backgroundColor: UIColor = .init(red: 7.0/255, green: 125.0/255, blue: 1, alpha: 1)
+        var backgroundColor: UIColor = .theme
         var padding: CGFloat = Configuration.defaultPadding
         var multilineTextAlignment = NSTextAlignment.left
         var containerViewBackgroundColor = UIColor.clear

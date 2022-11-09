@@ -15,6 +15,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.P
     unowned let scene: UIWindowScene
     private var tutorialFrames = [String : CGRect]()
     private var tooltipView = [TooltipView]()
+    private var activePageIndex = 0
     @UserDefaultsBackedReadWriteProperty(userDefaultsKey: "PDFPagesViewController.tutorialShownOnce", defaultValue: false) var tutorialShownOnce
 
     private var presentationManager: PresentationManager?
@@ -23,9 +24,13 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.P
         self.pdfManager = pdfManager
         self.scene = scene
         
-        super.init(rootView: PDFMainView(scene: scene, parentViewController: nil, pdfManager: pdfManager, displayScale: 2.0, tutorialFrames: nil))
+        super.init(rootView: PDFMainView(scene: scene, parentViewController: nil, pdfManager: pdfManager, displayScale: 2.0, activePageIndex: .constant(0), tutorialFrames: nil))
         
-        self.rootView = PDFMainView(scene: scene, parentViewController: self, pdfManager: pdfManager, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0), tutorialFrames: Binding(get: {
+        self.rootView = PDFMainView(scene: scene, parentViewController: self, pdfManager: pdfManager, displayScale: Double(scene.keyWindow?.screen.scale ?? 2.0), activePageIndex: Binding(get: {
+            self.activePageIndex
+        }, set: {
+            self.activePageIndex = $0
+        }), tutorialFrames: Binding(get: {
             self.tutorialFrames
         }, set: {
             self.tutorialFrames = $0
@@ -106,7 +111,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.P
     }
     
     fileprivate func showSidebar(presentSideBarInteractively: Bool) {
-        let thumbnailVC = PDFThumbnailsViewController(pdfManager: pdfManager, scene: scene)
+        let thumbnailVC = PDFThumbnailsViewController(pdfManager: pdfManager, scene: scene, activePageIndex: self.activePageIndex)
         thumbnailVC.modalPresentationStyle = .custom
         self.presentationManager = PresentationManager(presentInteractively: presentSideBarInteractively)
         thumbnailVC.transitioningDelegate = self.presentationManager
@@ -162,9 +167,9 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.P
         unowned let scene: UIWindowScene
         unowned let parentViewController: UIViewController?
         let tutorialFrames: Binding<[String : CGRect]>?
-        
+        let activePageIndex: Binding<Int>
+
         @StateObject private var pagesModel: PDFPagesModel
-        @State private var activePageIndex = 0
         @State private var disablePostingActivePageIndexNotification = false
         @State private var hidePrimaryColumn = true
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -178,11 +183,12 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.P
         private static let verticalSpacing = 10.0
         private static let gridPadding = (UIDevice.current.userInterfaceIdiom == .phone ? 10.0 : 20.0)
         
-        init(scene: UIWindowScene, parentViewController: UIViewController?, pdfManager: PDFManager, displayScale: Double, tutorialFrames: Binding<[String : CGRect]>?) {
+        init(scene: UIWindowScene, parentViewController: UIViewController?, pdfManager: PDFManager, displayScale: Double, activePageIndex: Binding<Int>, tutorialFrames: Binding<[String : CGRect]>?) {
             self.scene = scene
             self.parentViewController = parentViewController
             self.pdfManager = pdfManager
             self.tutorialFrames = tutorialFrames
+            self.activePageIndex = activePageIndex
             
             let uuid = UUID()
             _identifier = State(initialValue: uuid)
@@ -210,10 +216,10 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.P
                                     }
                                 }
                                 .onPreferenceChange(ScrollOffsetPreferenceKey.self) {
-                                    guard !disablePostingActivePageIndexNotification, $0.y > 0 && $0.y < size.height / 2 && activePageIndex != pageIndex else { return }
+                                    guard !disablePostingActivePageIndexNotification, $0.y > 0 && $0.y < size.height / 2 && activePageIndex.wrappedValue != pageIndex else { return }
                                     
-                                    activePageIndex = pageIndex
-                                    NotificationCenter.default.post(name: Common.activePageChangedNotification, object: identifier, userInfo: [Common.activePageIndexKey : activePageIndex, Common.pdfURLKey : self.pdfManager.url])
+                                    activePageIndex.wrappedValue = pageIndex
+                                    NotificationCenter.default.post(name: Common.activePageChangedNotification, object: identifier, userInfo: [Common.activePageIndexKey : activePageIndex.wrappedValue, Common.pdfURLKey : self.pdfManager.url])
                                 }
                                 .id(pageIndex)
                         }

@@ -10,15 +10,17 @@ import SwiftUI
 import PDFKit
 import UniformTypeIdentifiers
 
-final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewController.OuterPDFThumbnailView> {    
+final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewController.PDFThumbnails> {
     let pdfManager: PDFManager
     unowned let scene: UIWindowScene
+    let activePageIndex: Int
     
-    init(pdfManager: PDFManager, scene: UIWindowScene) {
+    init(pdfManager: PDFManager, scene: UIWindowScene, activePageIndex: Int = 0) {
         self.pdfManager = pdfManager
         self.scene = scene
+        self.activePageIndex = activePageIndex
         
-        super.init(rootView: OuterPDFThumbnailView(pdfManager: pdfManager, scene: scene))
+        super.init(rootView: PDFThumbnails(pdfManager: pdfManager, scene: scene, activePageIndex: activePageIndex))
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -27,15 +29,6 @@ final class PDFThumbnailsViewController: UIHostingController<PDFThumbnailsViewCo
 }
 
 extension PDFThumbnailsViewController {
-    struct OuterPDFThumbnailView: View {
-        let pdfManager: PDFManager
-        unowned let scene: UIWindowScene
-        
-        var body: some View {
-            PDFThumbnails(pdfManager: pdfManager, scene: scene)
-        }
-    }
-    
     struct PDFThumbnails: View {
         let pdfManager: PDFManager
         unowned let scene: UIWindowScene
@@ -45,7 +38,7 @@ extension PDFThumbnailsViewController {
         @State private var internalDragPageIndex: Int?
         @State private var currentInternalDropPageIndex: Int?
         @State private var externalDropFakePageIndex: Int? = nil
-        @State private var activePageIndex = 0
+        @State private var activePageIndex: Int
         @State private var inSelectionMode = false
         @State private var pdfToExport: URL?
         @State private var identifier: UUID
@@ -56,9 +49,10 @@ extension PDFThumbnailsViewController {
         private static let verticalSpacing = 15.0
         private static let gridPadding = 15.0
         
-        init(pdfManager: PDFManager, scene: UIWindowScene) {
+        init(pdfManager: PDFManager, scene: UIWindowScene, activePageIndex: Int = 0) {
             self.pdfManager = pdfManager
             self.scene = scene
+            _activePageIndex = State(initialValue: activePageIndex)
             let identifier = UUID()
             _identifier = State(initialValue: identifier)
             _isSelected = State(initialValue: Array(repeating: false, count: pdfManager.pageCount))
@@ -507,7 +501,7 @@ extension PDFThumbnailsViewController {
                         }
                     }
                 })
-                .border(inSelectionMode && isSelected[adjustedPageIndex] ? .blue : .black, width: inSelectionMode && isSelected[adjustedPageIndex] ? 2 : 0.5)
+                .border(inSelectionMode && isSelected[adjustedPageIndex] ? Color.theme : .black, width: inSelectionMode && isSelected[adjustedPageIndex] ? 2 : 0.5)
                 .frame(height: pdfManager.pagesAspectRatio[adjustedPageIndex] * width)
                 .overlay {
                     if !inSelectionMode && adjustedPageIndex == activePageIndex {
@@ -517,8 +511,9 @@ extension PDFThumbnailsViewController {
                             menu(adjustedPageIndex: adjustedPageIndex)
                         } label: {
                             Image(systemName: "ellipsis.circle.fill")
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(Color.theme, .white)
                                 .font(.system(size: 25))
-                                .tint(.white)
                         }
                         .frame(width: 44, height: 44)
                     }
@@ -550,7 +545,7 @@ extension PDFThumbnailsViewController {
                     .foregroundColor(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(inSelectionMode && isSelected[adjustedPageIndex] ? Color.blue : Color(white: 0.3))
+                    .background(inSelectionMode && isSelected[adjustedPageIndex] ? Color.theme : Color(white: 0.3))
                     .clipShape(Capsule())
                     .padding(.top, 5)
             }

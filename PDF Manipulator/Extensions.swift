@@ -46,6 +46,14 @@ struct FramePreferenceKey: PreferenceKey {
     }
 }
 
+extension UIColor {
+    static let theme = UIColor(named: "AccentColor")!
+}
+
+extension Color {
+    static let theme = Color(uiColor: .theme)
+}
+
 /*
 struct ScrollViewWithDidScroll<Content: View>: View {
     let axes: Axis.Set

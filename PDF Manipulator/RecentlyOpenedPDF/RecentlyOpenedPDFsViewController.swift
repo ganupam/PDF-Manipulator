@@ -191,12 +191,11 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                 .ifTrue(thumbnails[url] == nil) {
                     $0.resizable()
                 }
-                .border(url == selectedURL ? .blue : .gray, width: url == selectedURL ? 2 : 0.5)
                 .overlay {
                     if thumbnails[url] == nil {
                         Text("pdf")
                             .font(.title3)
-                            .foregroundColor(.blue)
+                            .foregroundColor(.theme)
                             .bold()
                     }
                 }
@@ -208,12 +207,14 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                             contextMenu(url: url)
                         } label: {
                             Image(systemName: "ellipsis.circle.fill")
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(Color.theme, .white)
                                 .font(.system(size: 25))
-                                .tint(.white)
                         }
                         .frame(width: 44, height: 44)
                     }
                 }
+                .border(url == selectedURL ? Color.theme : .gray, width: url == selectedURL ? 2 : 0.5)
                 .frame(width: thumbnails[url] == nil ? Self.thumbnailHeight : nil, height: Self.thumbnailHeight)
         }
         
@@ -442,7 +443,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                 }
             }
             
-            preconditionFailure("Control flow shouldn't be here!")
+            return 1
         }
         
         private func gridItems(containerWidth: CGFloat) -> [GridItem] {
