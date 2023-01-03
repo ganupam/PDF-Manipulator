@@ -18,11 +18,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             GADMobileAds.sharedInstance().requestConfiguration.testDeviceIdentifiers = [GADSimulatorID]
             GADMobileAds.sharedInstance().start(completionHandler: nil)
         }
+        
+        DebugLog("%@", FileManager.default.urls(for: .documentDirectory, in: .allDomainsMask).first!.absoluteString)
         return true
     }
 
     // MARK: UISceneSession Lifecycle
-
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
         // Called when a new scene session is being created.
         // Use this method to select a configuration to create the new scene with.

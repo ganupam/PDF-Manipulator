@@ -10,6 +10,12 @@ import SwiftUI
 import UIKit
 import PDFKit
 
+func DebugLog(_ format: String, _ args: CVarArg...) {
+    #if DEBUG
+    NSLog(format, args)
+    #endif
+}
+
 extension String {
     static var openPDFUserActivityType: String {
         (Bundle.main.bundleIdentifier ?? "") + ".openpdf"
