@@ -177,7 +177,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                     
                     Image(systemName: "folder")
 
-                    Text(" at the top to open a PDF file")
+                    Text(" at the top to open a pdf file")
                 }
                 .font(.subheadline)
                 .foregroundColor(.gray)
