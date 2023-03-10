@@ -90,7 +90,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
         @State private var showAnimatedCheckmark = false
         @State private var addToExistingPDFURL: URL? = nil
         @State private var adSize = CGSize.zero
-        @State private var adRemovalTransactionState = StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState
+        @State private var goProTransactionState = StoreKitManager.InAppPurchaseProduct.goPro.purchaseState
         @State private var selectedURL: URL?
         
         private func pages(from url: URL) -> [PDFPage]? {
@@ -269,6 +269,10 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
             .padding([.horizontal, .bottom], Self.horizontalSpacing)
         }
         
+        private var goProButtonTitle: String {
+            StoreKitManager.InAppPurchaseProduct.goPro.title + " - " + StoreKitManager.InAppPurchaseProduct.goPro.description + (goProTransactionState == .deferred ? " (" + NSLocalizedString("deferredTransaction", comment: "") + ")" : "")
+        }
+        
         var body: some View {
             Group {
                 if recentlyOpenFilesManager.urls.isEmpty {
@@ -299,13 +303,13 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                 self.generateThumbnails(urls: [url])
                             }
                             .onReceive(NotificationCenter.default.publisher(for: StoreKitManager.purchaseStateChanged)) { _ in
-                                adRemovalTransactionState = StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState
+                                goProTransactionState = StoreKitManager.InAppPurchaseProduct.goPro.purchaseState
                             }
                             .onAppear() {
                                 generateThumbnails(urls: recentlyOpenFilesManager.urls)
                             }
                             
-                            if adRemovalTransactionState != .purchased {
+                            if goProTransactionState != .purchased {
                                 GoogleADBannerView(adUnitID: "ca-app-pub-5089136213554560/9674578065", scene: scene, rootViewController: parentViewController!, availableWidth: reader.size.width) { size in
                                     adSize = size
                                 }
@@ -323,12 +327,10 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                     }
                     .toolbar {
                         ToolbarItem(placement: .navigationBarLeading) {
-                            if StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState != .purchased {
+                            if StoreKitManager.InAppPurchaseProduct.goPro.purchaseState != .purchased {
                                 Menu {
-                                    Button(String(format: NSLocalizedString("adRemovalTitle", comment: ""), StoreKitManager.InAppPurchaseProduct.adRemoval.price) + (adRemovalTransactionState == .deferred ? " (" + NSLocalizedString("deferredTransaction", comment: "") + ")" : "")) {
-                                        proceedWithAdRemoval()
-                                    }
-                                    .disabled(adRemovalTransactionState == .deferred)
+                                    Button(self.goProButtonTitle, action: proceedWithAdRemoval)
+                                        .disabled(goProTransactionState == .deferred)
                                     
                                     Button(NSLocalizedString("restorePurchases", comment: "")) {
                                         Task {
@@ -408,7 +410,7 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
             }
 
             Task {
-                await StoreKitManager.sharedInstance.purchase(product: StoreKitManager.InAppPurchaseProduct.adRemoval)
+                await StoreKitManager.sharedInstance.purchase(product: StoreKitManager.InAppPurchaseProduct.goPro)
             }
         }
         

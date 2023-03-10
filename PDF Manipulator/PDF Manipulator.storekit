@@ -5,28 +5,97 @@
   ],
   "products" : [
     {
-      "displayPrice" : "3.99",
+      "displayPrice" : "2.99",
       "familyShareable" : false,
-      "internalID" : "6444192903",
+      "internalID" : "6446207073",
       "localizations" : [
         {
-          "description" : "Get rid of Ads!",
-          "displayName" : "Remove Ads",
+          "description" : "Edit PDFs and get rid of ads!",
+          "displayName" : "Go Pro",
           "locale" : "en_US"
         }
       ],
-      "productID" : "inapppurchase.adremoval",
-      "referenceName" : "Ad Removal",
+      "productID" : "com.realnotions.pdfmanipulator.inapppurchase.gopro",
+      "referenceName" : "Go Pro",
       "type" : "NonConsumable"
     }
   ],
   "settings" : {
     "_applicationInternalID" : "6444193030",
+    "_askToBuyEnabled" : true,
     "_developerTeamID" : "H74EYQDPHH",
-    "_lastSynchronizedDate" : 689195621.15513098
+    "_lastSynchronizedDate" : 700170243.00229001
   },
   "subscriptionGroups" : [
+    {
+      "id" : "21267939",
+      "localizations" : [
 
+      ],
+      "name" : "Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "0.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6446153810",
+          "introductoryOffer" : {
+            "internalID" : "920FABD3",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "Unleash all features and get rid of ads!",
+              "displayName" : "Pro - 1 month subscription",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.realnotions.pdfmanipulator.subscription.pro.1month",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "1 month",
+          "subscriptionGroupID" : "21267939",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "1.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6446153518",
+          "introductoryOffer" : {
+            "internalID" : "52B1BC77",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Unleash all features and get rid of ads!",
+              "displayName" : "Pro - 3 months",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.realnotions.pdfmanipulator.subscription.pro.3months",
+          "recurringSubscriptionPeriod" : "P3M",
+          "referenceName" : "3 months",
+          "subscriptionGroupID" : "21267939",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
   ],
   "version" : {
     "major" : 2,

@@ -14,7 +14,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Override point for customization after application launch.
         StoreKitManager.sharedInstance.register()
         
-        if StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState != .purchased {
+        if TrialPeriodManager.sharedInstance.state != .pro {
             GADMobileAds.sharedInstance().requestConfiguration.testDeviceIdentifiers = [GADSimulatorID]
             GADMobileAds.sharedInstance().start(completionHandler: nil)
         }

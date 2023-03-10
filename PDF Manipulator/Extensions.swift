@@ -323,3 +323,31 @@ struct UserDefaultsBackedReadWriteProperty<Type> {
         }
     }
 }
+
+extension NotificationCenter {
+    final class NotificationToken {
+        private let token: Any
+
+        init(token: Any) {
+            self.token = token
+        }
+
+        deinit {
+            NotificationCenter.default.removeObserver(token)
+        }
+        
+        func store(in array: inout [NotificationToken]) {
+            array.append(self)
+        }
+        
+        func unregister() {
+            NotificationCenter.default.removeObserver(token)
+        }
+    }
+
+    /// NotificationCenter.addObserver(forName:object:queue:using:) doesn't unregister itself when the object is deallocated which cause the block to be leaked/not deallocated.
+    @inline(__always) func addTokenizedObserver(forName name: NSNotification.Name?, object obj: Any?, queue: OperationQueue?, using block: @escaping (Notification) -> Void) -> NotificationToken {
+        let token = addObserver(forName: name, object: obj, queue: queue, using: block)
+        return NotificationToken(token: token)
+    }
+}

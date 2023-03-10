@@ -178,7 +178,7 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.P
         @State private var previousScaleFactor = 1.0
         @State private var showDocumentPicker = false
         @State private var adSize = CGSize.zero
-        @State private var showAd = (StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState != .purchased)
+        @State private var showAd = (TrialPeriodManager.sharedInstance.state != .pro)
 
         private static let verticalSpacing = 10.0
         private static let gridPadding = (UIDevice.current.userInterfaceIdiom == .phone ? 10.0 : 20.0)
@@ -245,8 +245,8 @@ final class PDFPagesViewController: UIHostingController<PDFPagesViewController.P
                 .coordinateSpace(name: "scrollView")
             }
             .background(.gray)
-            .onReceive(NotificationCenter.default.publisher(for: StoreKitManager.purchaseStateChanged)) { _ in
-                showAd = (StoreKitManager.InAppPurchaseProduct.adRemoval.purchaseState != .purchased)
+            .onReceive(NotificationCenter.default.publisher(for: TrialPeriodManager.trialPeriodStateChanged)) { _ in
+                showAd = (TrialPeriodManager.sharedInstance.state != .pro)
             }
         }
 

@@ -1,9 +1,8 @@
 //
 //  StoreKitManager.swift
-//  midomi
+//  PDF Manipulator
 //
-//  Created by Anupam Godbole on 4/13/22.
-//  Copyright © 2022 SoundHound. All rights reserved.
+//  Created by Anupam Godbole on 10/3/22.
 //
 
 import UIKit
@@ -19,11 +18,10 @@ private extension SKProduct {
 }
 
 final class StoreKitManager: NSObject, SKPaymentTransactionObserver, SKProductsRequestDelegate {
-    @objc static let purchaseStateChanged = Notification.Name(rawValue: "purchaseStateChangedNotification")
-    private static let inAppPurchaseProfileAttribute = "IAP Ad Free"
+    static let purchaseStateChanged = Notification.Name(rawValue: "purchaseStateChangedNotification")
     
     enum InAppPurchaseProduct: String, CaseIterable {
-        case adRemoval = "inapppurchase.adremoval"
+        case goPro = "com.realnotions.pdfmanipulator.inapppurchase.gopro"
         
         var productIdentifier: String {
             self.rawValue
@@ -60,6 +58,18 @@ final class StoreKitManager: NSObject, SKPaymentTransactionObserver, SKProductsR
             (StoreKitManager.sharedInstance.products.first {
                 $0.productIdentifier == self.productIdentifier
             })?.localizedPrice ?? ""
+        }
+        
+        var description: String {
+            (StoreKitManager.sharedInstance.products.first {
+                $0.productIdentifier == self.productIdentifier
+            })?.localizedDescription ?? ""
+        }
+        
+        var title: String {
+            (StoreKitManager.sharedInstance.products.first {
+                $0.productIdentifier == self.productIdentifier
+            })?.localizedTitle ?? ""
         }
     }
     
@@ -176,7 +186,7 @@ final class StoreKitManager: NSObject, SKPaymentTransactionObserver, SKProductsR
                     let scene = (UIApplication.shared.openSessions.first {
                         $0.configuration.name == "Default Configuration"
                     })!.scene as! UIWindowScene
-                    UIAlertController.show(title: "Ad Removal", message: transaction.error?.localizedDescription, defaultButtonTitle: NSLocalizedString("generalOK", comment: ""), scene: scene)
+                    UIAlertController.show(message: transaction.error?.localizedDescription, defaultButtonTitle: NSLocalizedString("generalOK", comment: ""), scene: scene)
                 }
 
                 SKPaymentQueue.default().finishTransaction(transaction)
@@ -213,7 +223,7 @@ final class StoreKitManager: NSObject, SKPaymentTransactionObserver, SKProductsR
     }
     
     func paymentQueue(_ queue: SKPaymentQueue, didRevokeEntitlementsForProductIdentifiers productIdentifiers: [String]) {
-        if productIdentifiers.contains(InAppPurchaseProduct.adRemoval.productIdentifier) {
+        if productIdentifiers.contains(InAppPurchaseProduct.goPro.productIdentifier) {
             
         }
     }
