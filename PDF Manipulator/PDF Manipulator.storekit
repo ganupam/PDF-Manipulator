@@ -22,7 +22,7 @@
   ],
   "settings" : {
     "_applicationInternalID" : "6444193030",
-    "_askToBuyEnabled" : true,
+    "_askToBuyEnabled" : false,
     "_developerTeamID" : "H74EYQDPHH",
     "_lastSynchronizedDate" : 700170243.00229001
   },

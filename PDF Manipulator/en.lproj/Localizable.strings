@@ -40,3 +40,11 @@
 "pdfPagesTutorialEdit" = "Fill/Markup the pdf";
 "pdfPagesTutorialAddNewPage" = "Add pages from existing pdf";
 "pdfPagesTutorialSidebar" = "Tap to see page thumbnails and rearrange pages with drag/drop";
+"trialPeriodExpiredTitle" = "Trial period expired";
+"trialPeriodExpiredMessage" = "Your trial period has expired. To make changes to the PDF you will need to upgrade to Pro. Do you want to upgrade to Pro?";
+"generalNo" = "No";
+"generalYes" = "Yes";
+"startTrial" = "Start trial";
+"upgradeToPro" = "Upgrade to Pro";
+"upgradeToProTitle" = "Upgrade to Pro?";
+"upgradeToProMessage" = "To make changes to the PDF you will need to upgrade to Pro or you can try out Pro for %1$d days.";

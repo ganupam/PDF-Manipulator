@@ -8,11 +8,8 @@
 import Foundation
 
 final class KeychainManager: NSObject {
-    class func save(key: String, value: Codable, shouldSyncToiCloud: Bool = false) {
-        var query: [String : Any] = [kSecClass as String : kSecClassGenericPassword, kSecAttrAccount as String : key, kSecValueData as String : value]
-        if shouldSyncToiCloud {
-            query[kSecAttrSynchronizable as String] = kCFBooleanTrue!
-        }
+    class func save(key: String, value: Data) {
+        let query: [String : Any] = [kSecClass as String : kSecClassGenericPassword, kSecAttrAccount as String : key, kSecValueData as String : value, kSecAttrSynchronizable as String : kCFBooleanTrue!]
         
         let status = SecItemAdd(query as CFDictionary, nil)
         if status == errSecDuplicateItem {
@@ -21,28 +18,24 @@ final class KeychainManager: NSObject {
         }
     }
 
-    class func get(key:String, wasSyncedToiCloud: Bool = false) -> Codable? {
+    class func get(key:String) -> Data? {
         var item : CFTypeRef?
-        var getNameQuery: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+        let getNameQuery: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
                                            kSecMatchLimit as String : kSecMatchLimitOne,
                                            kSecAttrAccount as String: key,
-                                           kSecReturnData as String: kCFBooleanTrue!]
+                                           kSecReturnData as String: kCFBooleanTrue!,
+                                           kSecAttrSynchronizable as String : kCFBooleanTrue!]
 
-        if wasSyncedToiCloud {
-            getNameQuery[kSecAttrSynchronizable as String] = kCFBooleanTrue!
+        if SecItemCopyMatching(getNameQuery as CFDictionary, &item) == errSecSuccess, let item = item as? Data {
+            return item
         }
-        
-        let status = SecItemCopyMatching(getNameQuery as CFDictionary, &item)
-        return status == errSecSuccess ? item as? Codable : nil
+        return nil
     }
     
-    class func delete(key: String, wasSyncedToiCloud: Bool = false) {
-        var deleteNameQuery: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
-                                           kSecAttrAccount as String: key]
-
-        if wasSyncedToiCloud {
-            deleteNameQuery[kSecAttrSynchronizable as String] = kCFBooleanTrue!
-        }
+    class func delete(key: String) {
+        let deleteNameQuery: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+                                           kSecAttrAccount as String: key,
+                                              kSecAttrSynchronizable as String : kCFBooleanTrue!]
 
         SecItemDelete(deleteNameQuery as CFDictionary)
     }

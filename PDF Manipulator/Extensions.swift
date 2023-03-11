@@ -351,3 +351,17 @@ extension NotificationCenter {
         return NotificationToken(token: token)
     }
 }
+
+extension UIViewController {
+    var topMostPresentedViewController: UIViewController {
+        guard var presentedVC = self.presentedViewController else {
+            return self
+        }
+
+        while let pVC = presentedVC.presentedViewController {
+            presentedVC = pVC
+        }
+
+        return presentedVC
+    }
+}

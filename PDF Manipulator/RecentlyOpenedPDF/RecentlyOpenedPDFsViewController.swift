@@ -342,6 +342,14 @@ final class RecentlyOpenedPDFsViewController: UIHostingController<RecentlyOpened
                                 }
                             }
                         }
+                        
+#if DEBUG
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            if case TrialPeriodManager.State.trial(_) = TrialPeriodManager.sharedInstance.state {
+                                Button("Reset trial period", action: TrialPeriodManager.sharedInstance.resetTrialPeriod)
+                            }
+                        }
+#endif
                     }
                     .sheet(isPresented: .constant(addToExistingPDFURL != nil)) {
                         FilePickerView(operationMode: .open(selectableContentTypes: [UTType.pdf])) { destinationURL in

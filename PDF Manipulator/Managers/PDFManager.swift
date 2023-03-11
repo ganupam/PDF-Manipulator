@@ -155,22 +155,30 @@ final class PDFManager: NSObject {
         self.rotate(indices, angle: 90)
     }
     
-    @inline(__always) private func rotate(_ indices: [Int], angle: Int) {
-        for index in indices {
-            guard let page = self.pdfDoc.page(at: index) else { continue }
+    private func rotate(_ indices: [Int], angle: Int) {
+        Task {
+            guard await TrialPeriodManager.sharedInstance.canMakeChanges(scene: self.scene) else {
+                return
+            }
             
-            page.rotation += angle
-            let size = page.bounds(for: .mediaBox).size
-            self.pagesAspectRatio[index] = ((page.rotation % 180) == 0) ? (size.height / size.width) : (size.width / size.height)
+            await MainActor.run {
+                for index in indices {
+                    guard let page = self.pdfDoc.page(at: index) else { continue }
+                    
+                    page.rotation += angle
+                    let size = page.bounds(for: .mediaBox).size
+                    self.pagesAspectRatio[index] = ((page.rotation % 180) == 0) ? (size.height / size.width) : (size.width / size.height)
+                }
+                
+                self.registeredObjects.values.forEach { model in
+                    model.rotate(indices, angle: angle)
+                }
+                
+                NotificationCenter.default.post(name: PDFManager.didRotatePage, object: self, userInfo: [PDFManager.pagesIndicesKey : indices])
+                
+                self.saveChanges()
+            }
         }
-        
-        self.registeredObjects.values.forEach { model in
-            model.rotate(indices, angle: angle)
-        }
-        
-        NotificationCenter.default.post(name: PDFManager.didRotatePage, object: self, userInfo: [PDFManager.pagesIndicesKey : indices])
-        
-        self.saveChanges()
     }
     
     @inline(__always) func delete(_ index: Int) {
@@ -178,24 +186,33 @@ final class PDFManager: NSObject {
     }
     
     func delete(_ indices: [Int]) {
-        let indices = indices.sorted().reversed()
-        
-        guard (indices.allSatisfy { $0 < self.pdfDoc.pageCount }) else { return }
-        
-        NotificationCenter.default.post(name: PDFManager.willDeletePages, object: self, userInfo: [PDFManager.pagesIndicesKey : Array(indices)])
-
-        indices.forEach {
-            self.pagesAspectRatio.remove(at: $0)
-            self.pdfDoc.removePage(at: $0)
+        Task {
+            guard await TrialPeriodManager.sharedInstance.canMakeChanges(scene: self.scene) else {
+                return
+            }
+            
+            await MainActor.run {
+                let indices = indices.sorted().reversed()
+                
+                guard (indices.allSatisfy { $0 < self.pdfDoc.pageCount }) else { return }
+                
+                NotificationCenter.default.post(name: PDFManager.willDeletePages, object: self, userInfo: [PDFManager.pagesIndicesKey : Array(indices)])
+                
+                indices.forEach {
+                    self.pagesAspectRatio.remove(at: $0)
+                    self.pdfDoc.removePage(at: $0)
+                }
+                
+                self.registeredObjects.values.forEach { model in
+                    model.delete(Array(indices))
+                }
+                
+                self.saveChanges()
+            }
         }
-
-        self.registeredObjects.values.forEach { model in
-            model.delete(Array(indices))
-        }
-        
-        self.saveChanges()
     }
     
+    @MainActor
     func exchangeImages(index1: Int, index2: Int, identifier: UUID) {
         let aspectRatio = self.pagesAspectRatio[index1]
         self.pagesAspectRatio[index1] = self.pagesAspectRatio[index2]
@@ -205,15 +222,24 @@ final class PDFManager: NSObject {
     }
     
     func exchangePages(index1: Int, index2: Int, excludePageModelWithIdentifier: UUID) {
-        self.pdfDoc.exchangePage(at: index1, withPageAt: index2)
-        
-        for identifier in self.registeredObjects.keys where identifier != excludePageModelWithIdentifier {
-            self.registeredObjects[identifier]?.exchangeImages(index1: index1, index2: index2)
+        Task {
+            guard await TrialPeriodManager.sharedInstance.canMakeChanges(scene: self.scene) else {
+                await self.exchangeImages(index1: index1, index2: index2, identifier: excludePageModelWithIdentifier)
+                return
+            }
+            
+            await MainActor.run {
+                self.pdfDoc.exchangePage(at: index1, withPageAt: index2)
+                
+                for identifier in self.registeredObjects.keys where identifier != excludePageModelWithIdentifier {
+                    self.registeredObjects[identifier]?.exchangeImages(index1: index1, index2: index2)
+                }
+                
+                NotificationCenter.default.post(name: PDFManager.didExchangePages, object: self, userInfo: [PDFManager.pagesIndicesKey : [index1, index2]])
+                
+                self.saveChanges()
+            }
         }
-        
-        NotificationCenter.default.post(name: PDFManager.didExchangePages, object: self, userInfo: [PDFManager.pagesIndicesKey : [index1, index2]])
-        
-        self.saveChanges()
     }
     
     private func saveChanges() {
