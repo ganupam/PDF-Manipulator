@@ -48,3 +48,4 @@
 "upgradeToPro" = "Upgrade to Pro";
 "upgradeToProTitle" = "Upgrade to Pro?";
 "upgradeToProMessage" = "To make changes to the PDF you will need to upgrade to Pro or you can try out Pro for %1$d days.";
+"pdfPasswordProtected" = "PDF is password protected.";

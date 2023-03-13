@@ -9,7 +9,9 @@ import Foundation
 import UIKit
 import PDFKit
 
-final class PDFManager: NSObject {
+final class PDFManager: NSObject, ObservableObject {
+    static let errorDomain = "PDFManagerErrorDomain"
+    
     static let willInsertPages = Notification.Name("willInsertPages")
     static let willDeletePages = Notification.Name("willDeletePages")
     static let didRotatePage = Notification.Name("didRotatePage")
@@ -23,6 +25,7 @@ final class PDFManager: NSObject {
     private var pdfDoc: PDFDocument
     private(set) var pagesAspectRatio: [Double]
     private var lastModifiedDate: Date?
+    @Published private(set) var isLocked: Bool
     
     let url: URL
     unowned var scene: UIWindowScene
@@ -32,6 +35,8 @@ final class PDFManager: NSObject {
                 
         guard let doc = PDFDocument(url: url) else { url.stopAccessingSecurityScopedResource(); return nil }
     
+        self.isLocked = doc.isLocked
+        
         self.url = url
         self.pdfDoc = doc
         self.lastModifiedDate = ((try? FileManager.default.attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date)
@@ -44,6 +49,16 @@ final class PDFManager: NSObject {
 
         NotificationCenter.default.addObserver(self, selector: #selector(sceneDidEnterBackgroundNotification), name: UIScene.didEnterBackgroundNotification, object: scene)
         NotificationCenter.default.addObserver(self, selector: #selector(sceneWillEnterForegroundNotification), name: UIScene.willEnterForegroundNotification, object: scene)
+    }
+    
+    @inline(__always) func unlock(with password: String) -> Bool {
+        let unlocked = self.pdfDoc.unlock(withPassword: password)
+        if unlocked {
+            self.calculateAspectRatios()
+            self.isLocked = self.pdfDoc.isLocked
+        }
+        
+        return unlocked
     }
     
     @objc private func sceneDidEnterBackgroundNotification() {

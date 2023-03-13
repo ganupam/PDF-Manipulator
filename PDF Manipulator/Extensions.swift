@@ -34,7 +34,7 @@ extension UIAlertController {
     static func show(title: String? = nil, message: String? = nil, defaultButtonTitle: String = NSLocalizedString("generalOK", comment: ""), scene: UIWindowScene) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: defaultButtonTitle, style: .default))
-        scene.keyWindow?.rootViewController?.present(alert, animated: true)
+        scene.keyWindow?.rootViewController?.topMostPresentedViewController.present(alert, animated: true)
     }
 }
 

@@ -9,6 +9,7 @@ import UIKit
 
 final class RecentlyOpenedPDFsSceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
+    private var documentPicker: UIDocumentPickerViewController?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
@@ -52,8 +53,38 @@ final class RecentlyOpenedPDFsSceneDelegate: UIResponder, UIWindowSceneDelegate 
     }
     
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        for URLContext in URLContexts {
-            UIApplication.openPDF(URLContext.url, requestingScene: scene as! UIWindowScene)
+        guard let URLContext = URLContexts.first else {
+            return
         }
+        
+        if URLContext.options.openInPlace {
+            UIApplication.openPDF(URLContext.url, requestingScene: scene as! UIWindowScene)
+            return
+        }
+
+        let documentPicker = UIDocumentPickerViewController(forExporting: [URLContext.url], asCopy: true)
+        self.documentPicker = documentPicker
+        documentPicker.shouldShowFileExtensions = true
+        documentPicker.delegate = self
+    
+        (scene as! UIWindowScene).keyWindow?.rootViewController?.topMostPresentedViewController.present(documentPicker, animated: true)
+    }
+}
+
+extension RecentlyOpenedPDFsSceneDelegate: UIDocumentPickerDelegate {
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        self.documentPicker = nil
+    }
+    
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        defer {
+            self.documentPicker = nil
+        }
+        
+        guard let url = urls.first else {
+            return
+        }
+        
+        UIApplication.openPDF(url, requestingScene: window!.windowScene!)
     }
 }
